@@ -1,0 +1,7 @@
+.env
+.DS_Store
+.idea
+Thumbs.db
+.agents
+node_modules
+dist

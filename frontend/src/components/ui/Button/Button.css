@@ -1,0 +1,38 @@
+.button {
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  font-size: var(--text-osd-sm);
+  font-weight: 500;
+  transition: filter 150ms, background-color 150ms, border-color 150ms;
+  cursor: pointer;
+}
+
+.button--primary {
+  background-color: var(--color-osd-primary);
+  color: #000;
+  border: 1px solid var(--color-osd-primary);
+}
+
+.button--primary:hover {
+  filter: brightness(1.1);
+}
+
+.button--ghost {
+  background-color: var(--color-osd-panel);
+  color: var(--color-osd-primary);
+  border: 1px solid color-mix(in srgb, var(--color-osd-primary) 40%, transparent);
+}
+
+.button--ghost:hover {
+  border-color: var(--color-osd-primary);
+}
+
+.button--danger {
+  background-color: color-mix(in srgb, var(--color-osd-danger) 20%, transparent);
+  color: var(--color-osd-danger);
+  border: 1px solid var(--color-osd-danger);
+}
+
+.button--danger:hover {
+  background-color: color-mix(in srgb, var(--color-osd-danger) 30%, transparent);
+}

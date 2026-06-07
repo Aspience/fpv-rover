@@ -1,0 +1,9 @@
+paths:
+  rover:
+    source: rpiCamera
+    rpiCameraPath: /dev/video0
+
+webrtc: yes
+webrtcAddress: :8889
+api: yes
+apiAddress: :9997

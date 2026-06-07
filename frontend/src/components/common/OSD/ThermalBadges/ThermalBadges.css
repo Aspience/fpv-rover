@@ -1,0 +1,10 @@
+.thermal-badges {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  max-width: 20rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
