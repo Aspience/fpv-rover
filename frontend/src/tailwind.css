@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --z-index-video: 0;
+  --z-index-osd: 10;
+  --z-index-dashboard: 20;
+  --z-index-alert: 50;
+
+  --color-osd-primary: #00ee8a;
+  --color-osd-warning: #ffb020;
+  --color-osd-danger: #ff3b30;
+  --color-osd-muted: rgb(255 255 255 / 0.55);
+  --color-osd-panel: rgb(0 0 0 / 0.35);
+  --color-osd-battery-high: #00ee8a;
+  --color-osd-battery-mid: #ffb020;
+  --color-osd-battery-low: #ff3b30;
+
+  --font-osd: "JetBrains Mono", "Consolas", monospace;
+  --text-osd-xs: 0.6875rem;
+  --text-osd-sm: 0.8125rem;
+  --text-osd-md: 1rem;
+}

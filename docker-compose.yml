@@ -1,0 +1,52 @@
+services:
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    devices:
+      - /dev/i2c-1:/dev/i2c-1
+      - /dev/video0:/dev/video0
+    volumes:
+      - /sys/bus/w1:/sys/bus/w1:ro
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_RPI_HOST: ${VITE_RPI_HOST}
+        VITE_API_PORT: ${VITE_API_PORT}
+        VITE_WEBRTC_PORT: ${VITE_WEBRTC_PORT}
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx:/etc/nginx/conf.d:ro
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    ports:
+      - "8554:8554"
+      - "8889:8889"
+      - "9997:9997"
+    volumes:
+      - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
+    restart: unless-stopped

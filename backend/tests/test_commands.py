@@ -1,0 +1,51 @@
+"""WebSocket command dispatch tests."""
+
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from api.websocket import TelemetryHub
+from core.config import Topics
+from core.event_bus import EventBus
+
+
+@pytest.mark.asyncio
+async def test_move_command_publishes_control() -> None:
+    bus = EventBus()
+    received: asyncio.Queue[dict] = asyncio.Queue()
+    stream = bus.subscribe(Topics.COMMAND_CONTROL)
+
+    async def _collect() -> None:
+        async for payload in stream:
+            await received.put(payload)
+
+    collector = asyncio.create_task(_collect())
+    hub = TelemetryHub(bus)
+
+    await hub.handle_command(
+        {"cmd": "move", "pwm_left": 80, "pwm_right": 60, "steer": 0.1}
+    )
+
+    payload = await asyncio.wait_for(received.get(), timeout=1.0)
+    collector.cancel()
+    assert payload == {"pwm_left": 80, "pwm_right": 60, "steer": 0.1}
+
+
+@pytest.mark.asyncio
+async def test_invalid_command_is_rejected() -> None:
+    bus = EventBus()
+    hub = TelemetryHub(bus)
+
+    class _FakeWebSocket:
+        sent: list[str] = []
+
+        async def send_text(self, message: str) -> None:
+            self.sent.append(message)
+
+    ws = _FakeWebSocket()
+    await hub.handle_command({"cmd": "move", "pwm_left": 200}, websocket=ws)
+
+    assert len(ws.sent) == 1
+    assert '"type":"error"' in ws.sent[0] or '"type": "error"' in ws.sent[0]

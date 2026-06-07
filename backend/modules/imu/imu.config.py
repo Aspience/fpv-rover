@@ -1,0 +1,1 @@
+SAMPLE_RATE_HZ = 20

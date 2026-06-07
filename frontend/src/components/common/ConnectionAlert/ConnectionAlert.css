@@ -1,0 +1,21 @@
+.connection-alert {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: var(--z-index-alert);
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.connection-alert__banner {
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-osd-danger);
+  background-color: color-mix(in srgb, var(--color-osd-danger) 20%, transparent);
+  padding: 0.75rem 1.5rem;
+  font-size: var(--text-osd-md);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-osd-danger);
+}

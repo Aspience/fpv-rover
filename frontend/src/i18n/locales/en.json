@@ -1,0 +1,20 @@
+{
+  "connectionLost": "Connection lost",
+  "cameraDisabled": "Camera module disabled",
+  "light": "Light",
+  "record": "Record",
+  "stopRec": "Stop recording",
+  "settings": "Settings",
+  "language": "Language",
+  "languageSystem": "System default",
+  "languageEn": "English",
+  "languageRu": "Russian",
+  "thermal": {
+    "motor_steering": "Steering",
+    "motor_front": "Front",
+    "motor_rear": "Rear",
+    "bms": "BMS",
+    "iflight_bec": "iFlight BEC",
+    "tp5100": "TP5100"
+  }
+}

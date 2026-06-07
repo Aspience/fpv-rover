@@ -1,0 +1,20 @@
+{
+  "connectionLost": "Связь потеряна",
+  "cameraDisabled": "Модуль камеры отключён",
+  "light": "Свет",
+  "record": "Запись",
+  "stopRec": "Остановить запись",
+  "settings": "Настройки",
+  "language": "Язык",
+  "languageSystem": "Как в системе",
+  "languageEn": "English",
+  "languageRu": "Русский",
+  "thermal": {
+    "motor_steering": "Рулевой",
+    "motor_front": "Передний",
+    "motor_rear": "Задний",
+    "bms": "BMS",
+    "iflight_bec": "iFlight BEC",
+    "tp5100": "TP5100"
+  }
+}
