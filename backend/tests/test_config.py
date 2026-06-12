@@ -27,7 +27,7 @@ def test_feature_flags_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_get_settings_singleton(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ROVER_LOG_LEVEL", "DEBUG")
-    from core.config import clear_settings_cache, get_settings
+    from core.config import clear_settings_cache
 
     clear_settings_cache()
     first = get_settings()
@@ -57,6 +57,14 @@ def test_hardware_values_from_env_example() -> None:
     assert settings.camera_v4l2_ctl_bin == "v4l2-ctl"
     assert settings.camera_stream_path == "rover"
     assert len(settings.thermal_sensor_ids) == 6
+    assert settings.app_version == "0.1.0"
+    assert settings.github_owner == "aspience"
+    assert settings.github_repo == "fpv-rover"
+    assert settings.github_token == ""
+    assert settings.ota_enabled is False
+    assert settings.ota_install_dir == "/opt/fpv-rover"
+    assert settings.ota_script == "/opt/fpv-rover/scripts/ota_update.sh"
+    assert settings.ota_ssh_key_path == "/root/.ssh/fpv_rover_deploy"
 
 
 def test_i2c_address_accepts_hex_string(monkeypatch: pytest.MonkeyPatch) -> None:

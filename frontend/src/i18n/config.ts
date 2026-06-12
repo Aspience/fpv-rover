@@ -34,7 +34,7 @@ export const setLocalePreference = (preference: LocalePreference): void => {
 const navigatorDetector = new LanguageDetector()
 navigatorDetector.init({
   order: ['navigator'],
-  convertDetectedLanguage: (lng) => (lng.startsWith('ru') ? 'ru' : 'en'),
+  convertDetectedLanguage: (lng: string) => (lng.startsWith('ru') ? 'ru' : 'en'),
 })
 
 export const detectSystemLocale = (): Locale => {

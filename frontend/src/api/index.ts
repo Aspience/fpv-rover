@@ -1,5 +1,7 @@
 export { apiClient, whepClient } from './client'
 export { fetchConfig } from './config'
+export { pingHealth } from './health'
+export { checkUpdate, applyUpdate } from './update'
 export { wsClient, sendMove, sendBrightness, sendRecord } from './websocket'
 export { connectWhep } from './webrtc'
 export { env, apiBaseUrl, wsUrl, whepUrl, assertEnv } from './env'

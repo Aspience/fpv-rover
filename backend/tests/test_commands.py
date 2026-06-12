@@ -39,7 +39,8 @@ async def test_invalid_command_is_rejected() -> None:
     hub = TelemetryHub(bus)
 
     class _FakeWebSocket:
-        sent: list[str] = []
+        def __init__(self) -> None:
+            self.sent: list[str] = []
 
         async def send_text(self, message: str) -> None:
             self.sent.append(message)

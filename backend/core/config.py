@@ -15,10 +15,13 @@ ENV_EXAMPLE = REPO_ROOT / ".env.example"
 
 
 def _settings_env_files() -> tuple[str, ...]:
-    """Example file holds defaults; `.env` overrides when present."""
+    """Example file holds defaults; `.env` and optional `.env.local` override when present."""
     files = [str(ENV_EXAMPLE)]
     if ENV_FILE.is_file():
         files.append(str(ENV_FILE))
+    env_local = REPO_ROOT / ".env.local"
+    if env_local.is_file():
+        files.append(str(env_local))
     return tuple(files)
 
 
@@ -42,19 +45,19 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    modules_power_enabled: bool = False
-    modules_motion_enabled: bool = False
-    modules_thermal_enabled: bool = False
-    modules_imu_enabled: bool = False
-    modules_light_enabled: bool = False
-    modules_camera_enabled: bool = False
+    modules_power_enabled: bool
+    modules_motion_enabled: bool
+    modules_thermal_enabled: bool
+    modules_imu_enabled: bool
+    modules_light_enabled: bool
+    modules_camera_enabled: bool
 
-    log_level: str = "INFO"
+    log_level: str
     host: str
     port: int = Field(gt=0, le=65535)
-    ws_telemetry_hz: int = 20
-    heartbeat_timeout_sec: float = 1.0
-    io_retry_delay_sec: float = 2.0
+    ws_telemetry_hz: int
+    heartbeat_timeout_sec: float
+    io_retry_delay_sec: float
 
     i2c_bus: int
     w1_gpio: int
@@ -74,6 +77,15 @@ class Settings(BaseSettings):
     camera_v4l2_device: str
     camera_v4l2_ctl_bin: str
     camera_stream_path: str
+
+    app_version: str
+    github_owner: str
+    github_repo: str
+    github_token: str
+    ota_enabled: bool
+    ota_install_dir: str
+    ota_script: str
+    ota_ssh_key_path: str
 
     def enabled_modules(self) -> dict[str, bool]:
         return {

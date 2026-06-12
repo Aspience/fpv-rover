@@ -84,3 +84,18 @@ export const ConfigResponseSchema = z.object({
     camera: z.boolean(),
   }),
 })
+
+export const HealthResponseSchema = z.object({
+  status: z.string(),
+  version: z.string(),
+})
+
+export const UpdateCheckResponseSchema = z.object({
+  current: z.string(),
+  latest: z.string().nullable(),
+  has_update: z.boolean(),
+})
+
+export const UpdateApplyResponseSchema = z.object({
+  status: z.string(),
+})

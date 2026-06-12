@@ -1,0 +1,30 @@
+.ota-updating-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 24rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.ota-updating-overlay__spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid color-mix(in srgb, var(--color-osd-primary) 25%, transparent);
+  border-top-color: var(--color-osd-primary);
+  border-radius: 50%;
+  animation: ota-spin 0.8s linear infinite;
+}
+
+.ota-updating-overlay__text {
+  margin: 0;
+  font-size: var(--text-osd-sm);
+  color: var(--color-osd-primary);
+}
+
+@keyframes ota-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

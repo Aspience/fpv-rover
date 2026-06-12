@@ -2,7 +2,7 @@ import { apiClient } from '@/api/client'
 import type { ConfigResponse } from '@/types/contracts'
 import { ConfigResponseSchema } from '@/types/schemas'
 
-export const loadConfig = async (): Promise<ConfigResponse> => {
+export const fetchConfig = async (): Promise<ConfigResponse> => {
   const { data } = await apiClient.get<unknown>('/config')
 
   const parsed = ConfigResponseSchema.safeParse(data)
