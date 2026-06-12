@@ -11,6 +11,29 @@ export interface ConfigResponse {
   modules: ModulesConfig
 }
 
+export interface HealthResponse {
+  status: string
+  version: string
+}
+
+export interface UpdateCheckResponse {
+  current: string
+  latest: string | null
+  has_update: boolean
+}
+
+export interface UpdateApplyResponse {
+  status: string
+}
+
+export type OtaStatus =
+  | 'idle'
+  | 'checking'
+  | 'update_available'
+  | 'updating'
+  | 'success'
+  | 'error'
+
 export interface PowerData {
   voltage_v: number
   current_a: number

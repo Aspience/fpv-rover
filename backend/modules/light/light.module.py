@@ -52,4 +52,3 @@ class LightModule(BaseHardwareModule):
         async for payload in stream:  # type: ignore[union-attr]
             level = int(payload.get("level", 0))
             set_brightness(level)
-

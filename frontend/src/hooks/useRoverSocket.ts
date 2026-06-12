@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import useWebSocket, { ReadyState } from 'react-use-websocket'
 
-import { loadConfig } from '@/api/config'
+import { fetchConfig } from '@/api/config'
 import { wsUrl } from '@/api/env'
 import { useSystemStore } from '@/store/systemStore'
 import { useTelemetryStore } from '@/store/telemetryStore'
@@ -71,7 +71,7 @@ export const useConfig = (): void => {
 
   const { data } = useQuery({
     queryKey: ['rover', 'config'],
-    queryFn: loadConfig,
+    queryFn: fetchConfig,
     staleTime: Infinity,
   })
 

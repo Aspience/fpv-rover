@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { fetchConfig } from '@/api/config'
 import { wsClient } from '@/api/websocket'
-import { ConnectionAlert, Dashboard, OSD, Settings, VideoPlayer } from '@/components/common'
+import { ConnectionAlert, Dashboard, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
 import { useGamepad, useKeyboard } from '@/hooks'
 
 import './App.css'
@@ -30,6 +30,7 @@ const App = () => {
       <Settings />
       <Dashboard />
       <ConnectionAlert />
+      <OtaUpdatingOverlay />
     </main>
   )
 }

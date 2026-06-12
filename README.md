@@ -201,3 +201,97 @@ Both `backend` and `frontend` services mount the root `.env`. Frontend build arg
 Pi device mounts (`/dev/i2c-1`, `/dev/video0`, 1-Wire) are configured in [`docker-compose.yml`](docker-compose.yml) for the backend service.
 
 For production access through nginx on port 80, set `VITE_RPI_HOST` to the address clients use in the browser. WebRTC (port 8889) is reached directly by the browser, not through nginx.
+
+## OTA updates (production)
+
+On Raspberry Pi Zero 2 W, images are built in GitHub Actions (arm64) and pulled at runtime — no local `npm run build` or `docker compose build` on the device.
+
+### Prerequisites on the Pi
+
+1. **SSH deploy key** (read-only access to this repo):
+
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/fpv_rover_deploy -N ""
+   cat ~/.ssh/fpv_rover_deploy.pub
+   ```
+
+   Add the public key in GitHub → **Settings → Deploy keys** (read-only).
+
+   `~/.ssh/config`:
+
+   ```sshconfig
+   Host github.com
+     IdentityFile ~/.ssh/fpv_rover_deploy
+     IdentitiesOnly yes
+   ```
+
+2. **GHCR login** (if images are private):
+
+   ```bash
+   echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
+   ```
+
+   PAT needs `read:packages`.
+
+### First install
+
+```bash
+sudo mkdir -p /opt/fpv-rover && sudo chown "$USER" /opt/fpv-rover
+git clone git@github.com:Aspience/fpv-rover.git /opt/fpv-rover
+cd /opt/fpv-rover
+cp .env.example .env
+# Edit .env: ROVER_OTA_ENABLED=true, ROVER_MODULES_*, VITE_RPI_HOST=<Pi IP seen by browser>
+# Optional device-specific overrides (gitignored):
+cp .env.example .env.local   # keep only keys you want to override
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+Production images are pulled from `${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-{backend,frontend}:${IMAGE_TAG}` (all set in `.env`).
+
+### Environment variables (OTA)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROVER_OTA_ENABLED` | `false` | Allow `POST /update/apply` (set `true` on Pi) |
+| `ROVER_OTA_INSTALL_DIR` | `/opt/fpv-rover` | Install path on the device |
+| `ROVER_OTA_SCRIPT` | `/opt/fpv-rover/scripts/ota_update.sh` | Update script path |
+| `ROVER_OTA_SSH_KEY_PATH` | `/root/.ssh/fpv_rover_deploy` | Deploy key mounted into backend |
+| `ROVER_GITHUB_OWNER` | `aspience` | GitHub owner for release check and GHCR image path |
+| `ROVER_GITHUB_REPO` | `fpv-rover` | GitHub repo for release check and GHCR image path |
+| `ROVER_GITHUB_TOKEN` | *(empty)* | Optional PAT for GitHub API rate limits |
+| `FPV_ROVER_IMAGE_REGISTRY` | `ghcr.io` | Container registry for production images |
+| `IMAGE_TAG` | `latest` | Docker image tag to pull |
+
+**Custom env on device:** edit `.env` for shared settings; add `.env.local` for overrides (both are gitignored). Compose loads `.env` then optional `.env.local`.
+
+### Releasing a new version
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+GitHub Actions (`.github/workflows/release.yml`) builds arm64 images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.prod.yml`, and `scripts/ota_update.sh`.
+
+### Updating from the UI
+
+Open **Settings** → **Check for updates** → **Install update**. The UI shows a fullscreen overlay while the rover restarts and polls `GET /health` every 3 seconds until the backend is back.
+
+### Manual update / rollback
+
+```bash
+cd /opt/fpv-rover
+./scripts/ota_update.sh v0.2.0   # upgrade
+./scripts/ota_update.sh v0.1.0   # rollback
+```
+
+The script waits 3 seconds (so the API can respond), fetches the git tag, pulls Docker images, and runs `docker compose up -d`. It never overwrites `.env` or `.env.local`.
+
+### Boot persistence (optional)
+
+Install the systemd unit from [`infra/systemd/fpv-rover.service`](infra/systemd/fpv-rover.service):
+
+```bash
+sudo cp infra/systemd/fpv-rover.service /etc/systemd/system/
+sudo systemctl enable --now fpv-rover
+```

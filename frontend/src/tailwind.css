@@ -5,6 +5,7 @@
   --z-index-osd: 10;
   --z-index-dashboard: 20;
   --z-index-alert: 50;
+  --z-index-modal: 100;
 
   --color-osd-primary: #00ee8a;
   --color-osd-warning: #ffb020;

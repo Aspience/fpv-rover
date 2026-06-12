@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+      - path: .env.local
+        required: false
     ports:
       - "8000:8000"
     devices:
@@ -24,6 +26,8 @@ services:
         VITE_WEBRTC_PORT: ${VITE_WEBRTC_PORT}
     env_file:
       - .env
+      - path: .env.local
+        required: false
     ports:
       - "3000:3000"
     depends_on:

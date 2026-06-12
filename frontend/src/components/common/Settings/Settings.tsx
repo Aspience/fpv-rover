@@ -7,6 +7,8 @@ import {
   type LocalePreference,
 } from '@/i18n'
 
+import { OTAUpdater } from '@/components/common/OTAUpdater'
+
 import './Settings.css'
 
 export const Settings = () => {
@@ -38,6 +40,7 @@ export const Settings = () => {
           <option value="ru">{t('languageRu')}</option>
         </select>
       </div>
+      <OTAUpdater />
     </section>
   )
 }

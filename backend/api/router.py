@@ -8,7 +8,9 @@ from typing import Any
 from fastapi import FastAPI
 
 from api.config import router as config_router
+from api.health import router as health_router
 from api.protocol import router as protocol_router
+from api.update import router as update_router
 from api.websocket import router as websocket_router
 
 WS_DESCRIPTION = """
@@ -21,8 +23,8 @@ Real-time telemetry (20 Hz) and command channel.
 
 ### Client → server
 - `HeartbeatCommand` — required every 500 ms while connected
-- `MoveCommand` — tank drive PWM (0–100 per track)
-- `SetBrightnessCommand` — headlight level (0–100)
+- `MoveCommand` — tank drive PWM (0-100 per track)
+- `SetBrightnessCommand` — headlight level (0-100)
 - `RecordCommand` — start/stop camera recording
 
 See `GET /ws-protocol` for JSON Schema definitions.
@@ -39,11 +41,15 @@ def create_app(
         description="REST config + WebSocket telemetry/commands",
         openapi_tags=[
             {"name": "config", "description": "Module feature flags"},
+            {"name": "health", "description": "Service liveness"},
+            {"name": "update", "description": "OTA update check and apply"},
             {"name": "websocket", "description": WS_DESCRIPTION},
         ],
         lifespan=lifespan,
     )
     app.include_router(config_router)
+    app.include_router(health_router)
+    app.include_router(update_router)
     app.include_router(protocol_router)
     app.include_router(websocket_router)
     return app
