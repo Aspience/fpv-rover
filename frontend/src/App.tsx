@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { fetchConfig } from '@/api/config'
+import { useConfigQuery } from '@/api/queries'
 import { wsClient } from '@/api/websocket'
 import { ConnectionAlert, Dashboard, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
 import { useGamepad, useKeyboard } from '@/hooks'
@@ -11,6 +11,7 @@ import './App.css'
 const App = () => {
   useGamepad()
   useKeyboard()
+  useConfigQuery()
   const { i18n } = useTranslation()
 
   useEffect(() => {
@@ -18,7 +19,6 @@ const App = () => {
   }, [i18n.language])
 
   useEffect(() => {
-    void fetchConfig().catch(() => undefined)
     wsClient.connect()
     return () => wsClient.disconnect()
   }, [])

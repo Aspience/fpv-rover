@@ -1,4 +1,4 @@
-import { whepClient } from '@/api/client'
+import { postWhepOffer } from '@/api/http'
 import { useSystemStore } from '@/store/systemStore'
 
 export const connectWhep = async (video: HTMLVideoElement): Promise<() => void> => {
@@ -26,10 +26,7 @@ export const connectWhep = async (video: HTMLVideoElement): Promise<() => void> 
   await pc.setLocalDescription(offer)
 
   try {
-    const { data: answerSdp } = await whepClient.post<string>(
-      '/rover/whep',
-      offer.sdp ?? '',
-    )
+    const answerSdp = await postWhepOffer(offer.sdp ?? '')
     await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp })
     useSystemStore.getState().setVideoConnected(true)
   } catch {
