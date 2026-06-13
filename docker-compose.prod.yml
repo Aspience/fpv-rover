@@ -5,7 +5,7 @@ services:
     volumes:
       - ${ROVER_OTA_INSTALL_DIR:-.}:/opt/fpv-rover
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${ROVER_OTA_SSH_KEY_PATH:-/root/.ssh/fpv_rover_deploy}:/root/.ssh/id_ed25519:ro
+      - ${ROVER_OTA_SSH_KEY_PATH:-${HOME}/.ssh/fpv_rover_deploy}:/root/.ssh/id_ed25519:ro
 
   frontend:
     build: !reset null

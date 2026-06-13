@@ -84,3 +84,9 @@ def test_apply_update_starts_script(
     assert response.status_code == 200
     assert response.json() == {"status": "updating"}
     popen_mock.assert_called_once()
+    call_kwargs = popen_mock.call_args.kwargs
+    assert call_kwargs["args"] == ["/opt/fpv-rover/scripts/ota_update.sh", "v1.0.0"]
+    assert call_kwargs["cwd"] == "/opt/fpv-rover"
+    assert call_kwargs["env"]["IMAGE_TAG"] == "v1.0.0"
+    assert call_kwargs["env"]["ROVER_OTA_INSTALL_DIR"] == "/opt/fpv-rover"
+    assert "/root/.ssh/id_ed25519" in call_kwargs["env"]["GIT_SSH_COMMAND"]

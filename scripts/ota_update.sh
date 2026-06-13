@@ -1,63 +1,72 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sleep 3
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "${SCRIPT_DIR}/lib/common.sh"
 
-INSTALL_DIR="${ROVER_OTA_INSTALL_DIR:-/opt/fpv-rover}"
-TAG="${1:-${IMAGE_TAG:-latest}}"
+CLI_TAG="${1:-}"
+INSTALL_DIR_CANDIDATE="${ROVER_OTA_INSTALL_DIR:-/opt/fpv-rover}"
+
+# Load .env early so ROVER_OTA_INSTALL_DIR / IMAGE_TAG from file are visible before logging.
+if [[ -d "$INSTALL_DIR_CANDIDATE" ]]; then
+  source_env_files "$INSTALL_DIR_CANDIDATE"
+fi
+
+INSTALL_DIR="${ROVER_OTA_INSTALL_DIR:-$INSTALL_DIR_CANDIDATE}"
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-LOG_DIR="${INSTALL_DIR}/logs"
-LOG_FILE="${LOG_DIR}/ota.log"
+LOG_FILE="${INSTALL_DIR}/logs/ota.log"
 
-mkdir -p "$LOG_DIR"
-
-log() {
-  echo "[$(date -Iseconds)] $*" | tee -a "$LOG_FILE"
-}
-
-log "Starting OTA update to tag: ${TAG}"
+mkdir -p "${INSTALL_DIR}/logs"
+log_init ota "$LOG_FILE"
+trap 'on_error $LINENO $?' ERR
 
 cd "$INSTALL_DIR"
 
-if [[ -f .env ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env
-  set +a
-fi
+phase_start grace_period
+log_info grace_period "Waiting 3s so API can respond before restart"
+sleep 3
+phase_ok grace_period
 
-if [[ -f .env.local ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env.local
-  set +a
-fi
-
+phase_start load_env
+load_env_files load_env "$INSTALL_DIR"
+TAG="${CLI_TAG:-${IMAGE_TAG:-latest}}"
 export IMAGE_TAG="$TAG"
 export ROVER_OTA_INSTALL_DIR="$INSTALL_DIR"
+configure_git_ssh load_env
+log_info load_env "Effective TAG=${TAG} INSTALL_DIR=${INSTALL_DIR} ROVER_PORT=${ROVER_PORT:-8000}"
+phase_ok load_env
 
-log "Fetching tags from origin..."
-git fetch --tags origin
-git checkout "$TAG"
+log_session_env ota \
+  "INSTALL_DIR=${INSTALL_DIR}" \
+  "TAG=${TAG}" \
+  "IMAGE_TAG=${IMAGE_TAG}" \
+  "ROVER_PORT=${ROVER_PORT:-8000}" \
+  "ROVER_OTA_SSH_KEY_PATH=${ROVER_OTA_SSH_KEY_PATH:-<unset>}"
 
-log "Pulling Docker images..."
-$COMPOSE pull backend frontend
+phase_start git_fetch_checkout
+run_cmd git_fetch_checkout "git remote -v" git remote -v
+run_cmd git_fetch_checkout "git fetch --tags" git fetch --tags origin
+run_cmd git_fetch_checkout "git checkout ${TAG}" git checkout "$TAG"
+run_cmd git_fetch_checkout "git rev-parse HEAD" git rev-parse HEAD
+run_cmd git_fetch_checkout "git describe --tags" git describe --tags --always
+phase_ok git_fetch_checkout
 
-log "Applying update..."
-$COMPOSE up -d --remove-orphans
+phase_start compose_pull
+run_cmd compose_pull "compose pull backend frontend" $COMPOSE pull backend frontend
+phase_ok compose_pull
 
-log "Waiting for backend health..."
+phase_start compose_up
+run_cmd compose_up "compose up -d" $COMPOSE up -d --remove-orphans
+run_cmd compose_up "compose ps" $COMPOSE ps
+phase_ok compose_up
+
+phase_start health_check
 HEALTH_URL="http://localhost:${ROVER_PORT:-8000}/health"
-MAX_ATTEMPTS=40
-ATTEMPT=0
+wait_for_health "$HEALTH_URL" 40 3 health_check
+phase_ok health_check
 
-until curl -sf "$HEALTH_URL" >/dev/null 2>&1; do
-  ATTEMPT=$((ATTEMPT + 1))
-  if [[ $ATTEMPT -ge $MAX_ATTEMPTS ]]; then
-    log "ERROR: Health check timed out after $((MAX_ATTEMPTS * 3)) seconds"
-    exit 1
-  fi
-  sleep 3
-done
-
-log "OTA update to ${TAG} completed successfully"
+phase_start complete
+duration=$(( $(date +%s) - SESSION_START_EPOCH ))
+log_info complete "OTA update to ${TAG} completed successfully (duration: ${duration}s)"
+phase_ok complete
