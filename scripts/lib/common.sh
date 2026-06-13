@@ -277,3 +277,25 @@ set_env_key() {
     echo "${key}=${value}" >>"$file"
   fi
 }
+
+# Map IMAGE_TAG "latest" to a real git ref (newest v* tag, else default branch).
+resolve_git_ref() {
+  local tag="$1"
+  local repo_dir="${2:-.}"
+
+  if [[ "$tag" != "latest" ]]; then
+    echo "$tag"
+    return 0
+  fi
+
+  local newest_tag
+  newest_tag=$(git -C "$repo_dir" tag -l 'v*' --sort=-version:refname 2>/dev/null | head -1)
+  if [[ -n "$newest_tag" ]]; then
+    echo "$newest_tag"
+    return 0
+  fi
+
+  local default_branch
+  default_branch=$(git -C "$repo_dir" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+  echo "${default_branch:-main}"
+}

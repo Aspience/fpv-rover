@@ -226,9 +226,11 @@ clone_or_update_repo() {
 
 checkout_tag() {
   phase_start checkout_tag
-  log_info checkout_tag "Resolved TAG=${TAG}"
+  local git_ref
+  git_ref=$(resolve_git_ref "$TAG" "$INSTALL_DIR")
+  log_info checkout_tag "Resolved TAG=${TAG} git_ref=${git_ref}"
   run_cmd checkout_tag "git fetch --tags" git -C "$INSTALL_DIR" fetch --tags origin
-  run_cmd checkout_tag "git checkout ${TAG}" git -C "$INSTALL_DIR" checkout "$TAG"
+  run_cmd checkout_tag "git checkout ${git_ref}" git -C "$INSTALL_DIR" checkout "$git_ref"
   run_cmd checkout_tag "git rev-parse HEAD" git -C "$INSTALL_DIR" rev-parse HEAD
   run_cmd checkout_tag "git describe --tags" git -C "$INSTALL_DIR" describe --tags --always
   if [[ -n "$(git -C "$INSTALL_DIR" status --porcelain 2>/dev/null)" ]]; then
@@ -248,9 +250,14 @@ setup_env_files() {
 
   cp "${INSTALL_DIR}/.env.example" "$env_file"
 
-  local vite_host app_version ota_script
+  local vite_host app_version ota_script git_ref
   vite_host="${VITE_RPI_HOST:-$(hostname -I | awk '{print $1}')}"
-  app_version="${TAG#v}"
+  git_ref=$(resolve_git_ref "$TAG" "$INSTALL_DIR")
+  if [[ "$TAG" == "latest" ]]; then
+    app_version="${git_ref#v}"
+  else
+    app_version="${TAG#v}"
+  fi
   ota_script="${INSTALL_DIR}/scripts/ota_update.sh"
 
   set_env_key "$env_file" "ROVER_OTA_ENABLED" "true"

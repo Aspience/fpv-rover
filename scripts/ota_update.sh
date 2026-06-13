@@ -45,9 +45,11 @@ log_session_env ota \
   "ROVER_OTA_SSH_KEY_PATH=${ROVER_OTA_SSH_KEY_PATH:-<unset>}"
 
 phase_start git_fetch_checkout
+GIT_REF=$(resolve_git_ref "$TAG" "$INSTALL_DIR")
+log_info git_fetch_checkout "Resolved TAG=${TAG} git_ref=${GIT_REF}"
 run_cmd git_fetch_checkout "git remote -v" git remote -v
 run_cmd git_fetch_checkout "git fetch --tags" git fetch --tags origin
-run_cmd git_fetch_checkout "git checkout ${TAG}" git checkout "$TAG"
+run_cmd git_fetch_checkout "git checkout ${GIT_REF}" git checkout "$GIT_REF"
 run_cmd git_fetch_checkout "git rev-parse HEAD" git rev-parse HEAD
 run_cmd git_fetch_checkout "git describe --tags" git describe --tags --always
 phase_ok git_fetch_checkout
