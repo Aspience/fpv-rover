@@ -251,33 +251,61 @@ On Raspberry Pi Zero 2 W, images are built in GitHub Actions (arm64) and pulled 
 
 ### Prerequisites on the Pi
 
-1. **Docker** and **Docker Compose** plugin installed.
-2. **SSH deploy key** — bootstrap can generate one interactively, or configure manually:
+Bootstrap requires **git**, **curl**, **Docker**, and the **Docker Compose** plugin (`docker compose`). On a fresh Raspberry Pi OS image these are often missing.
 
-   ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/fpv_rover_deploy -N ""
-   cat ~/.ssh/fpv_rover_deploy.pub
-   ```
+#### 1. Git and curl
 
-   Add the public key in GitHub → **Settings → Deploy keys** (read-only).
+```bash
+sudo apt update
+sudo apt install -y git curl
+```
 
-   `~/.ssh/config`:
+#### 2. Docker and Docker Compose
 
-   ```sshconfig
-   Host github.com
-     IdentityFile ~/.ssh/fpv_rover_deploy
-     IdentitiesOnly yes
-   ```
+Install Docker Engine and the Compose plugin (official convenience script for Raspberry Pi OS / Debian):
 
-   With `./scripts/bootstrap.sh`, the script generates the key at `$HOME/.ssh/fpv_rover_deploy` (current user), pauses to show the public key, and waits for you to add it in GitHub.
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker "$USER"
+```
 
-3. **GHCR login** (only if images are private):
+Log out and back in (or run `newgrp docker`) so your user can run Docker without `sudo`.
 
-   ```bash
-   echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
-   ```
+Verify:
 
-   PAT needs `read:packages`. Public GHCR packages do not require login.
+```bash
+docker --version
+docker compose version
+```
+
+#### 3. SSH deploy key
+
+Bootstrap can generate one interactively, or configure manually:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/fpv_rover_deploy -N ""
+cat ~/.ssh/fpv_rover_deploy.pub
+```
+
+Add the public key in GitHub → **Settings → Deploy keys** (read-only).
+
+`~/.ssh/config`:
+
+```sshconfig
+Host github.com
+  IdentityFile ~/.ssh/fpv_rover_deploy
+  IdentitiesOnly yes
+```
+
+With `./scripts/bootstrap.sh`, the script generates the key at `$HOME/.ssh/fpv_rover_deploy` (current user), pauses to show the public key, and waits for you to add it in GitHub.
+
+#### 4. GHCR login (only if images are private)
+
+```bash
+echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
+```
+
+PAT needs `read:packages`. Public GHCR packages do not require login.
 
 ### First install
 
@@ -355,7 +383,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-GitHub Actions (`.github/workflows/release.yml`) builds arm64 images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.prod.yml`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
+GitHub Actions (`.github/workflows/release.yml`) builds arm64 images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.yml`, `docker-compose.prod.yml`, `infra/**/*`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
 
 ### Updating from the UI
 
