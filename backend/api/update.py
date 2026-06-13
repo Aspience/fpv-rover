@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 GITHUB_API = "https://api.github.com"
+# Deploy key mount target inside the backend container (see docker-compose.prod.yml).
+OTA_CONTAINER_SSH_KEY = "/root/.ssh/id_ed25519"
 
 
 def _github_headers(token: str) -> dict[str, str]:
@@ -59,8 +61,10 @@ def _run_ota_script(tag: str) -> None:
     env = os.environ.copy()
     env["ROVER_OTA_INSTALL_DIR"] = install_dir
     env["IMAGE_TAG"] = tag
+    # ROVER_OTA_SSH_KEY_PATH is the host path for compose volume mounts; git runs in-container.
     env["GIT_SSH_COMMAND"] = (
-        f"ssh -i {settings.ota_ssh_key_path} -o StrictHostKeyChecking=accept-new"
+        f"ssh -i {OTA_CONTAINER_SSH_KEY} -o StrictHostKeyChecking=accept-new "
+        "-o IdentitiesOnly=yes"
     )
 
     try:

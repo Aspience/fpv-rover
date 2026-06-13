@@ -64,7 +64,7 @@ def test_hardware_values_from_env_example() -> None:
     assert settings.ota_enabled is False
     assert settings.ota_install_dir == "/opt/fpv-rover"
     assert settings.ota_script == "/opt/fpv-rover/scripts/ota_update.sh"
-    assert settings.ota_ssh_key_path == "/root/.ssh/fpv_rover_deploy"
+    assert settings.ota_ssh_key_path == ""
 
 
 def test_i2c_address_accepts_hex_string(monkeypatch: pytest.MonkeyPatch) -> None:

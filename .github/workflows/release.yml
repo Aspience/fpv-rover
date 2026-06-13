@@ -76,3 +76,6 @@ jobs:
             version.txt
             docker-compose.prod.yml
             scripts/ota_update.sh
+            scripts/bootstrap.sh
+            scripts/lib/common.sh
+            .env.example

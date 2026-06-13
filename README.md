@@ -2,6 +2,43 @@
 
 Monorepo for an FPV rover (LEGO Audi e-tron) on Raspberry Pi Zero 2 W.
 
+## Contents
+
+### Overview
+
+- [Structure](#structure)
+- [Requirements](#requirements)
+
+### Local development
+
+- [Environment](#environment)
+- [Backend — quick start](#backend--quick-start)
+- [Frontend](#frontend)
+- [Backend ↔ frontend sync](#backend--frontend-sync)
+  - [Shared configuration (`.env`)](#1-shared-configuration-env)
+  - [REST — module flags](#2-rest--module-flags)
+  - [WebSocket — telemetry and commands](#3-websocket--telemetry-and-commands)
+  - [Video — WebRTC (WHEP)](#4-video--webrtc-whep)
+  - [Sync checklist](#sync-checklist)
+
+### Infrastructure
+
+- [Infra / Docker](#infra--docker)
+
+### Production (Raspberry Pi)
+
+- [OTA updates](#ota-updates-production)
+  - [Prerequisites on the Pi](#prerequisites-on-the-pi)
+  - [First install](#first-install)
+  - [Bootstrap options](#bootstrap-options)
+  - [Environment variables (OTA)](#environment-variables-ota)
+  - [Releasing a new version](#releasing-a-new-version)
+  - [Updating from the UI](#updating-from-the-ui)
+  - [Manual update / rollback](#manual-update--rollback)
+  - [Boot persistence (optional)](#boot-persistence-optional)
+
+---
+
 ## Structure
 
 ```
@@ -19,6 +56,8 @@ fpv-rover/
 - Python **3.14.5** (managed via [uv](https://docs.astral.sh/uv/))
 - [uv](https://docs.astral.sh/uv/) for backend dependencies
 - **Node.js 22+** and npm for the frontend
+
+---
 
 ## Environment
 
@@ -182,6 +221,8 @@ When you add or change an API field:
 - [ ] Backend tests (`pytest`)
 - [ ] Manual check: backend running + `npm run dev` or built frontend
 
+---
+
 ## Infra / Docker
 
 ```bash
@@ -202,13 +243,16 @@ Pi device mounts (`/dev/i2c-1`, `/dev/video0`, 1-Wire) are configured in [`docke
 
 For production access through nginx on port 80, set `VITE_RPI_HOST` to the address clients use in the browser. WebRTC (port 8889) is reached directly by the browser, not through nginx.
 
+---
+
 ## OTA updates (production)
 
 On Raspberry Pi Zero 2 W, images are built in GitHub Actions (arm64) and pulled at runtime — no local `npm run build` or `docker compose build` on the device.
 
 ### Prerequisites on the Pi
 
-1. **SSH deploy key** (read-only access to this repo):
+1. **Docker** and **Docker Compose** plugin installed.
+2. **SSH deploy key** — bootstrap can generate one interactively, or configure manually:
 
    ```bash
    ssh-keygen -t ed25519 -f ~/.ssh/fpv_rover_deploy -N ""
@@ -225,13 +269,15 @@ On Raspberry Pi Zero 2 W, images are built in GitHub Actions (arm64) and pulled 
      IdentitiesOnly yes
    ```
 
-2. **GHCR login** (if images are private):
+   With `./scripts/bootstrap.sh`, the script generates the key at `$HOME/.ssh/fpv_rover_deploy` (current user), pauses to show the public key, and waits for you to add it in GitHub.
+
+3. **GHCR login** (only if images are private):
 
    ```bash
    echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
    ```
 
-   PAT needs `read:packages`.
+   PAT needs `read:packages`. Public GHCR packages do not require login.
 
 ### First install
 
@@ -239,14 +285,52 @@ On Raspberry Pi Zero 2 W, images are built in GitHub Actions (arm64) and pulled 
 sudo mkdir -p /opt/fpv-rover && sudo chown "$USER" /opt/fpv-rover
 git clone git@github.com:Aspience/fpv-rover.git /opt/fpv-rover
 cd /opt/fpv-rover
-cp .env.example .env
-# Edit .env: ROVER_OTA_ENABLED=true, ROVER_MODULES_*, VITE_RPI_HOST=<Pi IP seen by browser>
-# Optional device-specific overrides (gitignored):
-cp .env.example .env.local   # keep only keys you want to override
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+./scripts/bootstrap.sh --enable-systemd
+# or pin a release tag:
+./scripts/bootstrap.sh --tag v0.1.5 --enable-systemd
 ```
 
+Bootstrap creates `.env` from `.env.example` with production values (`ROVER_OTA_ENABLED=true`, `VITE_RPI_HOST`, `IMAGE_TAG`, etc.). It does **not** create `.env.local`.
+
+Before pulling images, bootstrap **pauses** so you can edit env interactively (opens `${EDITOR:-nano}` on request). Set module flags, confirm `VITE_RPI_HOST`, and optionally create `.env.local` for hardware IDs — then press Enter to continue.
+
+Example `.env.local` (do **not** copy the full `.env.example` — `.env.local` overrides `.env` and would reset OTA settings to example defaults):
+
+```
+ROVER_MODULES_CAMERA_ENABLED=true
+ROVER_THERMAL_SENSOR_IDS={"motor_steering":"28-..."}
+```
+
+Use `--non-interactive` to skip the env edit pause (e.g. when env is preconfigured via files or env vars).
+
 Production images are pulled from `${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-{backend,frontend}:${IMAGE_TAG}` (all set in `.env`).
+
+### Bootstrap options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--install-dir PATH` | `/opt/fpv-rover` | Install path on the device |
+| `--tag TAG` | `latest` (or `$IMAGE_TAG`) | Git tag and Docker image tag to deploy |
+| `--repo URL` | `git@github.com:Aspience/fpv-rover.git` | Git remote for clone/fetch |
+| `--non-interactive` | off | Fail fast if SSH/GitHub/GHCR setup is missing |
+| `--skip-clone` | off | Skip clone when repo is already in `--install-dir` |
+| `--skip-ssh` | off | Skip SSH key generation and GitHub deploy-key prompt |
+| `--skip-ghcr-login` | off | Skip `docker login ghcr.io` |
+| `--skip-deploy` | off | Setup only (env, clone) — no `compose pull/up` |
+| `--enable-systemd` | off | Install and enable `infra/systemd/fpv-rover.service` |
+| `--quiet` | off | Less stdout; log file stays verbose |
+
+| Env var | Used for |
+|---------|----------|
+| `VITE_RPI_HOST` | Browser-facing Pi IP/hostname (non-interactive bootstrap) |
+| `IMAGE_TAG` | Default tag when `--tag` is omitted |
+| `GHCR_USER` + `GHCR_TOKEN` | Optional GHCR login (public packages skip this) |
+
+**Logs:** `/opt/fpv-rover/logs/bootstrap.log` — full session with timestamps, phases, and command output.
+
+```bash
+tail -100 /opt/fpv-rover/logs/bootstrap.log
+```
 
 ### Environment variables (OTA)
 
@@ -255,14 +339,14 @@ Production images are pulled from `${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OW
 | `ROVER_OTA_ENABLED` | `false` | Allow `POST /update/apply` (set `true` on Pi) |
 | `ROVER_OTA_INSTALL_DIR` | `/opt/fpv-rover` | Install path on the device |
 | `ROVER_OTA_SCRIPT` | `/opt/fpv-rover/scripts/ota_update.sh` | Update script path |
-| `ROVER_OTA_SSH_KEY_PATH` | `/root/.ssh/fpv_rover_deploy` | Deploy key mounted into backend |
+| `ROVER_OTA_SSH_KEY_PATH` | *(empty in template)* | Host path to deploy key; bootstrap sets `$HOME/.ssh/fpv_rover_deploy` for the user running install |
 | `ROVER_GITHUB_OWNER` | `aspience` | GitHub owner for release check and GHCR image path |
 | `ROVER_GITHUB_REPO` | `fpv-rover` | GitHub repo for release check and GHCR image path |
 | `ROVER_GITHUB_TOKEN` | *(empty)* | Optional PAT for GitHub API rate limits |
 | `FPV_ROVER_IMAGE_REGISTRY` | `ghcr.io` | Container registry for production images |
 | `IMAGE_TAG` | `latest` | Docker image tag to pull |
 
-**Custom env on device:** edit `.env` for shared settings; add `.env.local` for overrides (both are gitignored). Compose loads `.env` then optional `.env.local`.
+**Custom env on device:** edit `.env` for shared settings; add `.env.local` for overrides only (both are gitignored). Compose loads `.env` then optional `.env.local`. Do not copy the full `.env.example` into `.env.local` — it overrides bootstrap values such as `ROVER_OTA_ENABLED`.
 
 ### Releasing a new version
 
@@ -271,7 +355,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-GitHub Actions (`.github/workflows/release.yml`) builds arm64 images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.prod.yml`, and `scripts/ota_update.sh`.
+GitHub Actions (`.github/workflows/release.yml`) builds arm64 images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.prod.yml`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
 
 ### Updating from the UI
 
@@ -287,9 +371,15 @@ cd /opt/fpv-rover
 
 The script waits 3 seconds (so the API can respond), fetches the git tag, pulls Docker images, and runs `docker compose up -d`. It never overwrites `.env` or `.env.local`.
 
+**Logs:** `/opt/fpv-rover/logs/ota.log`
+
+```bash
+tail -100 /opt/fpv-rover/logs/ota.log
+```
+
 ### Boot persistence (optional)
 
-Install the systemd unit from [`infra/systemd/fpv-rover.service`](infra/systemd/fpv-rover.service):
+Bootstrap can install the systemd unit with `--enable-systemd`, or manually from [`infra/systemd/fpv-rover.service`](infra/systemd/fpv-rover.service):
 
 ```bash
 sudo cp infra/systemd/fpv-rover.service /etc/systemd/system/
