@@ -1,7 +1,6 @@
 FROM node:24-alpine AS build
 
 WORKDIR /app
-COPY package*.json ./
 COPY package.json package-lock.json* ./
 RUN npm ci --foreground-scripts --verbose
 
