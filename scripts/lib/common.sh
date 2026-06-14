@@ -278,6 +278,16 @@ set_env_key() {
   fi
 }
 
+persist_image_tags() {
+  local env_file="$1"
+  local tag="$2"
+  set_env_key "$env_file" "IMAGE_TAG" "$tag"
+  set_env_key "$env_file" "ROVER_APP_VERSION" "${tag#v}"
+  set_env_key "$env_file" "BACKEND_IMAGE_TAG" "${BACKEND_IMAGE_TAG}"
+  set_env_key "$env_file" "FRONTEND_IMAGE_TAG" "${FRONTEND_IMAGE_TAG}"
+  set_env_key "$env_file" "MEDIAMTX_IMAGE_TAG" "${MEDIAMTX_IMAGE_TAG}"
+}
+
 # Map IMAGE_TAG "latest" to a real git ref (newest v* tag, else default branch).
 resolve_git_ref() {
   local tag="$1"

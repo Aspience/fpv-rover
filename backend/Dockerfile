@@ -33,6 +33,9 @@ RUN pip install uv && uv sync --frozen --no-dev
 
 COPY . .
 
+ARG ROVER_APP_VERSION=dev
+ENV ROVER_APP_VERSION=${ROVER_APP_VERSION}
+
 ENV PYTHONPATH=/app
 
 CMD ["uv", "run", "fpv-rover"]

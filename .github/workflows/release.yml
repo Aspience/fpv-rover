@@ -61,9 +61,6 @@ jobs:
           echo "Build frontend: ${BUILD_FRONTEND}"
           echo "Build mediamtx: ${BUILD_MEDIAMTX}"
 
-      - name: Write version.txt
-        run: echo "${{ github.ref_name }}" | sed 's/^v//' > version.txt
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -161,7 +158,6 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            version.txt
             image-tags.env
             docker-compose.yml
             docker-compose.prod.yml

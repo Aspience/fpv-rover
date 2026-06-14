@@ -3,14 +3,15 @@ import { useTranslation } from 'react-i18next'
 
 import { useConfigQuery } from '@/api/queries'
 import { wsClient } from '@/api/websocket'
-import { ConnectionAlert, Dashboard, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
-import { useGamepad, useKeyboard } from '@/hooks'
+import { Dashboard, EventLog, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
+import { useConnectionLostLog, useGamepad, useKeyboard } from '@/hooks'
 
 import './App.css'
 
 const App = () => {
   useGamepad()
   useKeyboard()
+  useConnectionLostLog()
   useConfigQuery()
   const { i18n } = useTranslation()
 
@@ -27,9 +28,9 @@ const App = () => {
     <main className="app">
       <VideoPlayer />
       <OSD />
+      <EventLog />
       <Settings />
       <Dashboard />
-      <ConnectionAlert />
       <OtaUpdatingOverlay />
     </main>
   )

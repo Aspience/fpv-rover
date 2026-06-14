@@ -85,9 +85,16 @@ export const ConfigResponseSchema = z.object({
   }),
 })
 
+export const ServiceVersionsSchema = z.object({
+  backend: z.string(),
+  frontend: z.string(),
+  mediamtx: z.string(),
+})
+
 export const HealthResponseSchema = z.object({
   status: z.string(),
   version: z.string(),
+  services: ServiceVersionsSchema,
 })
 
 export const UpdateCheckResponseSchema = z.object({
