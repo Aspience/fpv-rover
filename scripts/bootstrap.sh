@@ -359,7 +359,8 @@ docker_compose_deploy() {
   log_info docker_compose_deploy "Using IMAGE_TAG=${IMAGE_TAG}"
 
   run_cmd docker_compose_deploy "compose pull" $COMPOSE pull
-  run_cmd docker_compose_deploy "compose up" $COMPOSE up -d --remove-orphans
+  run_cmd docker_compose_deploy "compose up --wait" $COMPOSE up -d --wait --remove-orphans
+  run_cmd docker_compose_deploy "restart nginx" $COMPOSE restart nginx
   run_cmd docker_compose_deploy "compose ps" $COMPOSE ps
   run_cmd docker_compose_deploy "docker images" bash -c "docker images --format '{{.Repository}}:{{.Tag}}' | grep -E 'fpv-rover|ghcr.io' || true"
   phase_ok docker_compose_deploy
@@ -374,8 +375,7 @@ health_check() {
   phase_start health_check
   cd "$INSTALL_DIR"
   load_env_files health_check "$INSTALL_DIR"
-  local health_url="http://localhost:${ROVER_PORT:-8000}/health"
-  wait_for_health "$health_url" 40 3 health_check
+  wait_for_nginx_stack health_check 40 3
   phase_ok health_check
 }
 
