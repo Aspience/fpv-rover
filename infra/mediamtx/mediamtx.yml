@@ -1,6 +1,9 @@
 paths:
   rover:
     source: rpiCamera
+    rpiCameraWidth: 1280
+    rpiCameraHeight: 720
+    rpiCameraBitrate: 1000000
 
 webrtc: yes
 webrtcAddress: :8889
