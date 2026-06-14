@@ -29,8 +29,8 @@ export const OTAUpdater = () => {
   const isRecovering = otaStatus === 'updating' && applyMutation.isSuccess
 
   const handleRecoverySuccess = useCallback(() => {
-    setOtaStatus('success')
-  }, [setOtaStatus])
+    window.location.reload()
+  }, [])
 
   const handleRecoveryError = useCallback(
     (message: string) => {

@@ -62,14 +62,13 @@ run_cmd compose_pull "compose pull backend frontend mediamtx" $COMPOSE pull back
 phase_ok compose_pull
 
 phase_start compose_up
-run_cmd compose_up "compose up -d" $COMPOSE up -d --remove-orphans
+run_cmd compose_up "compose up --wait" $COMPOSE up -d --wait --remove-orphans
 run_cmd compose_up "restart nginx" $COMPOSE restart nginx
 run_cmd compose_up "compose ps" $COMPOSE ps
 phase_ok compose_up
 
 phase_start health_check
-HEALTH_URL="http://localhost:${ROVER_PORT:-8000}/health"
-wait_for_health "$HEALTH_URL" 40 3 health_check
+wait_for_nginx_stack health_check 40 3
 phase_ok health_check
 
 phase_start complete
