@@ -82,8 +82,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcamera0.5 \
+    libcamera-dev \
     libcamera-ipa \
+    libcamera-tools \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=mediamtx-builder /mediamtx /mediamtx
