@@ -49,6 +49,8 @@ services:
     build:
       context: infra/mediamtx
       dockerfile: Dockerfile
+    environment:
+      - MTX_WEBRTCICEHOSTNAT1TO1IPS=${VITE_RPI_HOST}
     privileged: true
     ports:
       - "8554:8554"
