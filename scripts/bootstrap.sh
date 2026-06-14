@@ -354,9 +354,9 @@ docker_compose_deploy() {
   phase_start docker_compose_deploy
   cd "$INSTALL_DIR"
   load_env_files docker_compose_deploy "$INSTALL_DIR"
-  export IMAGE_TAG="${IMAGE_TAG:-$TAG}"
   export ROVER_OTA_INSTALL_DIR="$INSTALL_DIR"
-  log_info docker_compose_deploy "Using IMAGE_TAG=${IMAGE_TAG}"
+  export_compose_image_tags "${IMAGE_TAG:-$TAG}" "$INSTALL_DIR" docker_compose_deploy
+  log_info docker_compose_deploy "Using IMAGE_TAG=${IMAGE_TAG} BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} FRONTEND_IMAGE_TAG=${FRONTEND_IMAGE_TAG} MEDIAMTX_IMAGE_TAG=${MEDIAMTX_IMAGE_TAG}"
 
   run_cmd docker_compose_deploy "compose pull" $COMPOSE pull
   run_cmd docker_compose_deploy "compose up" $COMPOSE up -d --remove-orphans
