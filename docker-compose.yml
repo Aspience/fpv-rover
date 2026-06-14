@@ -51,9 +51,11 @@ services:
     ports:
       - "8554:8554"
       - "8889:8889"
+      - "8189:8189/udp"
       - "9997:9997"
     volumes:
       - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      - /usr/share/libcamera/ipa:/usr/share/libcamera/ipa:ro
       - /run/udev:/run/udev:ro
     tmpfs:
       - /dev/shm:exec
