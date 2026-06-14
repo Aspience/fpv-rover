@@ -267,18 +267,47 @@ Install Docker Engine and the Compose plugin (official convenience script for Ra
 ```bash
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker "$USER"
+newgrp docker
 ```
 
-Log out and back in (or run `newgrp docker`) so your user can run Docker without `sudo`.
+Log out and back in (or run `newgrp docker` as above) so your user can run Docker without `sudo`. Bootstrap needs daemon access for `compose pull/up`.
 
 Verify:
 
 ```bash
 docker --version
 docker compose version
+docker ps
 ```
 
-#### 3. SSH deploy key
+#### 3. I2C and 1-Wire
+
+Backend expects `/dev/i2c-1` and `/sys/bus/w1` on the host (see [`docker-compose.yml`](docker-compose.yml)). Enable both before bootstrap — sensors do not need to be connected yet.
+
+```bash
+sudo raspi-config
+# Interface Options → I2C → Enable
+# Interface Options → 1-Wire → Enable
+sudo reboot
+```
+
+Or add to `/boot/firmware/config.txt` (older images: `/boot/config.txt`):
+
+```
+dtparam=i2c_arm=on
+dtoverlay=w1-gpio,gpiopin=4
+```
+
+After reboot, verify:
+
+```bash
+ls /dev/i2c-1
+ls /sys/bus/w1
+```
+
+`gpiopin=4` matches the default `ROVER_W1_GPIO=4` in `.env.example`.
+
+#### 4. SSH deploy key
 
 Bootstrap can generate one interactively, or configure manually:
 
@@ -299,7 +328,7 @@ Host github.com
 
 With `./scripts/bootstrap.sh`, the script generates the key at `$HOME/.ssh/fpv_rover_deploy` (current user), pauses to show the public key, and waits for you to add it in GitHub.
 
-#### 4. GHCR login (only if images are private)
+#### 5. GHCR login (only if images are private)
 
 ```bash
 echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
