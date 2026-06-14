@@ -35,19 +35,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-jinja2 \
     python3-yaml \
     python3-ply \
-    libpisp-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN set -eux; \
-    base="https://github.com/ArduCAM/Arducam-Pivariety-V4L2-Driver/releases/download/${ARDUCAM_LIBCAMERA_RELEASE}"; \
-    ver="${ARDUCAM_LIBCAMERA_VERSION}"; \
-    wget -q "${base}/libcamera0.5_${ver}_arm64.deb"; \
-    wget -q "${base}/libcamera-dev_${ver}_arm64.deb"; \
-    wget -q "${base}/libcamera-ipa_${ver}_arm64.deb"; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends ./libcamera0.5_${ver}_arm64.deb ./libcamera-ipa_${ver}_arm64.deb ./libcamera-dev_${ver}_arm64.deb; \
-    rm -f ./*.deb; \
-    rm -rf /var/lib/apt/lists/*
+RUN wget -O install_pivariety_pkgs.sh https://github.com/ArduCAM/Arducam-Pivariety-V4L2-Driver/releases/download/install_script/install_pivariety_pkgs.sh \
+    && chmod +x install_pivariety_pkgs.sh \
+    && sed -i 's/sudo //g' install_pivariety_pkgs.sh \
+    && ./install_pivariety_pkgs.sh -p libcamera_dev
 
 WORKDIR /src
 RUN git clone --depth 1 --branch "${MEDIAMTX_RPICAMERA_VERSION}" \
@@ -94,19 +87,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     > /etc/apt/sources.list.d/raspi.list \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpisp0.0.1 \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    base="https://github.com/ArduCAM/Arducam-Pivariety-V4L2-Driver/releases/download/${ARDUCAM_LIBCAMERA_RELEASE}"; \
-    ver="${ARDUCAM_LIBCAMERA_VERSION}"; \
-    wget -q "${base}/libcamera0.5_${ver}_arm64.deb"; \
-    wget -q "${base}/libcamera-ipa_${ver}_arm64.deb"; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends ./libcamera0.5_${ver}_arm64.deb ./libcamera-ipa_${ver}_arm64.deb; \
-    rm -f ./*.deb; \
-    rm -rf /var/lib/apt/lists/*
+RUN wget -O install_pivariety_pkgs.sh https://github.com/ArduCAM/Arducam-Pivariety-V4L2-Driver/releases/download/install_script/install_pivariety_pkgs.sh \
+    && chmod +x install_pivariety_pkgs.sh \
+    && sed -i 's/sudo //g' install_pivariety_pkgs.sh \
+    && ./install_pivariety_pkgs.sh -p libcamera
 
 COPY --from=mediamtx-builder /mediamtx /mediamtx
 

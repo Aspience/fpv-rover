@@ -58,6 +58,7 @@ services:
     devices:
       - /dev/i2c-1:/dev/i2c-1
       - /dev/video0:/dev/video0
+      - /dev/dma_heap:/dev/dma_heap
     volumes:
       - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
       - /run/udev:/run/udev:ro
