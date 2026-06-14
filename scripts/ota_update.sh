@@ -58,7 +58,7 @@ run_cmd git_fetch_checkout "git describe --tags" git describe --tags --always
 phase_ok git_fetch_checkout
 
 phase_start compose_pull
-run_cmd compose_pull "compose pull backend frontend" $COMPOSE pull backend frontend
+run_cmd compose_pull "compose pull backend frontend mediamtx" $COMPOSE pull backend frontend mediamtx
 phase_ok compose_pull
 
 phase_start compose_up

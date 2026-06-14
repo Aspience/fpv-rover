@@ -235,9 +235,9 @@ docker compose up --build
 | `backend` | 8000 | FastAPI, hardware modules |
 | `frontend` | 3000 | Static SPA (Caddy) |
 | `nginx` | 80 | Reverse proxy: `/` → frontend, `/api/` and `/ws` → backend |
-| `mediamtx` | 8554, 8889, 9997 | RTSP, WebRTC, control API |
+| `mediamtx` | 8554, 8889, 9997 | RTSP, WebRTC, control API (custom build for Arducam/Pivariety via RPi libcamera) |
 
-Both `backend` and `frontend` services mount the root `.env`. Frontend build args (`VITE_*`) are passed from the same file at image build time.
+Both `backend` and `frontend` services mount the root `.env`. Frontend build args (`VITE_*`) are passed from the same file at image build time. `mediamtx` is built from [`infra/mediamtx/Dockerfile`](infra/mediamtx/Dockerfile) locally; production pulls a pre-built image from GHCR (see [OTA updates](#ota-updates-production)).
 
 Pi device mounts (`/dev/i2c-1`, `/dev/video0`, 1-Wire) are configured in [`docker-compose.yml`](docker-compose.yml) for the backend service.
 
@@ -247,7 +247,7 @@ Production UI on port 80: REST → `/api`, WebSocket → `/ws` (via nginx). WebR
 
 ## OTA updates (production)
 
-On Raspberry Pi Zero 2 W, images are built in GitHub Actions (arm64) and pulled at runtime — no local `npm run build` or `docker compose build` on the device.
+On Raspberry Pi Zero 2 W, backend, frontend, and mediamtx images are built in GitHub Actions (arm64) and pulled at runtime — no local `npm run build` or `docker compose build` on the device.
 
 ### Prerequisites on the Pi
 
@@ -360,7 +360,7 @@ ROVER_THERMAL_SENSOR_IDS={"motor_steering":"28-..."}
 
 Use `--non-interactive` to skip the env edit pause (e.g. when env is preconfigured via files or env vars).
 
-Production images are pulled from `${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-{backend,frontend}:${IMAGE_TAG}` (all set in `.env`).
+Production images are pulled from `${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-{backend,frontend,mediamtx}:${IMAGE_TAG}` (all set in `.env`).
 
 ### Bootstrap options
 
@@ -412,7 +412,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-GitHub Actions (`.github/workflows/release.yml`) builds arm64 images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.yml`, `docker-compose.prod.yml`, `infra/**/*`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
+GitHub Actions (`.github/workflows/release.yml`) builds arm64 backend, frontend, and mediamtx images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.yml`, `docker-compose.prod.yml`, `infra/**/*`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
 
 ### Updating from the UI
 

@@ -46,7 +46,9 @@ services:
     restart: unless-stopped
 
   mediamtx:
-    image: bluenviron/mediamtx:latest-rpi
+    build:
+      context: infra/mediamtx
+      dockerfile: Dockerfile
     privileged: true
     ports:
       - "8554:8554"
