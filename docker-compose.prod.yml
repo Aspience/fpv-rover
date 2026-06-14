@@ -1,7 +1,7 @@
 services:
   backend:
     build: !reset null
-    image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-backend:${IMAGE_TAG}
+    image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-backend:${BACKEND_IMAGE_TAG:-${IMAGE_TAG}}
     volumes:
       - ${ROVER_OTA_INSTALL_DIR:-.}:/opt/fpv-rover
       - /var/run/docker.sock:/var/run/docker.sock
@@ -9,8 +9,8 @@ services:
 
   frontend:
     build: !reset null
-    image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-frontend:${IMAGE_TAG}
+    image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-frontend:${FRONTEND_IMAGE_TAG:-${IMAGE_TAG}}
 
   mediamtx:
     build: !reset null
-    image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-mediamtx:${IMAGE_TAG}
+    image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-mediamtx:${MEDIAMTX_IMAGE_TAG:-${IMAGE_TAG}}

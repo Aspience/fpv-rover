@@ -247,7 +247,7 @@ Production UI on port 80: REST → `/api`, WebSocket → `/ws` (via nginx). WebR
 
 ## OTA updates (production)
 
-On Raspberry Pi Zero 2 W, backend, frontend, and mediamtx images are built in GitHub Actions (arm64) and pulled at runtime — no local `npm run build` or `docker compose build` on the device.
+On Raspberry Pi Zero 2 W, backend, frontend, and mediamtx images are built in GitHub Actions (arm64) when their source changes, then pulled at runtime — no local `npm run build` or `docker compose build` on the device.
 
 ### Prerequisites on the Pi
 
@@ -360,7 +360,7 @@ ROVER_THERMAL_SENSOR_IDS={"motor_steering":"28-..."}
 
 Use `--non-interactive` to skip the env edit pause (e.g. when env is preconfigured via files or env vars).
 
-Production images are pulled from `${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-{backend,frontend,mediamtx}:${IMAGE_TAG}` (all set in `.env`).
+Production images are pulled from `${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-{backend,frontend,mediamtx}` with per-service tags resolved at deploy time. `IMAGE_TAG` in `.env` is the target release; bootstrap and OTA read `image-tags.env` from the checked-out release (or fall back to the nearest existing GHCR tag per service).
 
 ### Bootstrap options
 
@@ -401,7 +401,10 @@ tail -100 /opt/fpv-rover/logs/bootstrap.log
 | `ROVER_GITHUB_REPO` | `fpv-rover` | GitHub repo for release check and GHCR image path |
 | `ROVER_GITHUB_TOKEN` | *(empty)* | Optional PAT for GitHub API rate limits |
 | `FPV_ROVER_IMAGE_REGISTRY` | `ghcr.io` | Container registry for production images |
-| `IMAGE_TAG` | `latest` | Docker image tag to pull |
+| `IMAGE_TAG` | `latest` | Target release tag for git checkout and app version |
+| `BACKEND_IMAGE_TAG` | *(auto)* | Override backend image tag (pin/rollback) |
+| `FRONTEND_IMAGE_TAG` | *(auto)* | Override frontend image tag (pin/rollback) |
+| `MEDIAMTX_IMAGE_TAG` | *(auto)* | Override mediamtx image tag (pin/rollback) |
 
 **Custom env on device:** edit `.env` for shared settings; add `.env.local` for overrides only (both are gitignored). Compose loads `.env` then optional `.env.local`. Do not copy the full `.env.example` into `.env.local` — it overrides bootstrap values such as `ROVER_OTA_ENABLED`.
 
@@ -412,7 +415,18 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-GitHub Actions (`.github/workflows/release.yml`) builds arm64 backend, frontend, and mediamtx images, pushes to GHCR, and creates a GitHub Release with `version.txt`, `docker-compose.yml`, `docker-compose.prod.yml`, `infra/**/*`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
+GitHub Actions (`.github/workflows/release.yml`) builds arm64 backend, frontend, and mediamtx images and pushes them to GHCR. Each service is rebuilt **only when its context changed** since the previous `v*` tag (`backend/`, `frontend/`, `infra/mediamtx/`). Skipped services keep their previous image tag; `:latest` is updated only for services that were rebuilt.
+
+The workflow writes `image-tags.env` with the resolved tag for each service (example when mediamtx was unchanged in `v0.2.0`):
+
+```env
+IMAGE_TAG=v0.2.0
+BACKEND_IMAGE_TAG=v0.2.0
+FRONTEND_IMAGE_TAG=v0.2.0
+MEDIAMTX_IMAGE_TAG=v0.1.9
+```
+
+Release assets include `version.txt`, `image-tags.env`, `docker-compose.yml`, `docker-compose.prod.yml`, `infra/**/*`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
 
 ### Updating from the UI
 
@@ -426,7 +440,7 @@ cd /opt/fpv-rover
 ./scripts/ota_update.sh v0.1.0   # rollback
 ```
 
-The script waits 3 seconds (so the API can respond), fetches the git tag, pulls Docker images, and runs `docker compose up -d`. It never overwrites `.env` or `.env.local`.
+The script waits 3 seconds (so the API can respond), fetches the git tag, resolves per-service image tags from `image-tags.env` (with nearest-tag fallback for older releases), pulls Docker images, and runs `docker compose up -d`. It never overwrites `.env` or `.env.local`.
 
 **Logs:** `/opt/fpv-rover/logs/ota.log`
 

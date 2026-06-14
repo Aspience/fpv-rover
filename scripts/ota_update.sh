@@ -58,6 +58,8 @@ run_cmd git_fetch_checkout "git describe --tags" git describe --tags --always
 phase_ok git_fetch_checkout
 
 phase_start compose_pull
+export_compose_image_tags "$TAG" "$INSTALL_DIR" compose_pull
+log_info compose_pull "Using IMAGE_TAG=${IMAGE_TAG} BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} FRONTEND_IMAGE_TAG=${FRONTEND_IMAGE_TAG} MEDIAMTX_IMAGE_TAG=${MEDIAMTX_IMAGE_TAG}"
 run_cmd compose_pull "compose pull backend frontend mediamtx" $COMPOSE pull backend frontend mediamtx
 phase_ok compose_pull
 

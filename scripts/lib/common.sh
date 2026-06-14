@@ -299,3 +299,123 @@ resolve_git_ref() {
   default_branch=$(git -C "$repo_dir" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
   echo "${default_branch:-main}"
 }
+
+service_image_name() {
+  local service="$1"
+  local registry="${FPV_ROVER_IMAGE_REGISTRY:-ghcr.io}"
+  local owner="${ROVER_GITHUB_OWNER:-aspience}"
+  local repo="${ROVER_GITHUB_REPO:-fpv-rover}"
+  echo "${registry}/${owner}/${repo}-${service}"
+}
+
+service_image_tag_var() {
+  case "$1" in
+    backend) echo "BACKEND_IMAGE_TAG" ;;
+    frontend) echo "FRONTEND_IMAGE_TAG" ;;
+    mediamtx) echo "MEDIAMTX_IMAGE_TAG" ;;
+    *) return 1 ;;
+  esac
+}
+
+docker_image_exists() {
+  local image_ref="$1"
+  docker manifest inspect "$image_ref" >/dev/null 2>&1
+}
+
+semver_lte() {
+  local a="${1#v}"
+  local b="${2#v}"
+  [[ "$(printf '%s\n%s\n' "$a" "$b" | sort -V | head -1)" == "$a" ]]
+}
+
+normalize_app_tag() {
+  local tag="$1"
+  local repo_dir="${2:-.}"
+  if [[ "$tag" == "latest" ]]; then
+    resolve_git_ref "$tag" "$repo_dir"
+  else
+    echo "$tag"
+  fi
+}
+
+# Load per-service image tags from release artifact without overriding .env values.
+load_image_tags() {
+  local repo_dir="$1"
+  local tag_file="${repo_dir}/image-tags.env"
+
+  if [[ ! -f "$tag_file" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    local key="${line%%=*}"
+    local value="${line#*=}"
+    if [[ -z "${!key:-}" ]]; then
+      export "$key=$value"
+    fi
+  done <"$tag_file"
+}
+
+# Find the nearest existing image tag at or below target_tag (fallback for releases without image-tags.env).
+resolve_service_image_tag() {
+  local service="$1"
+  local target_tag="$2"
+  local repo_dir="${3:-.}"
+  local image="${4:-$(service_image_name "$service")}"
+  local tag
+
+  if docker_image_exists "${image}:${target_tag}"; then
+    echo "$target_tag"
+    return 0
+  fi
+
+  while IFS= read -r tag; do
+    [[ -z "$tag" ]] && continue
+    if ! semver_lte "$tag" "$target_tag"; then
+      continue
+    fi
+    if docker_image_exists "${image}:${tag}"; then
+      echo "$tag"
+      return 0
+    fi
+  done < <(git -C "$repo_dir" tag -l 'v*' --sort=-version:refname 2>/dev/null)
+
+  if docker_image_exists "${image}:latest"; then
+    echo "latest"
+    return 0
+  fi
+
+  echo "$target_tag"
+}
+
+export_compose_image_tags() {
+  local app_tag="$1"
+  local repo_dir="${2:-.}"
+  local phase="${3:-compose_tags}"
+  local resolved_app_tag
+  local service var_name resolved
+
+  resolved_app_tag=$(normalize_app_tag "$app_tag" "$repo_dir")
+  export IMAGE_TAG="$app_tag"
+
+  load_image_tags "$repo_dir"
+
+  for service in backend frontend mediamtx; do
+    var_name=$(service_image_tag_var "$service")
+
+    if [[ -n "${!var_name:-}" ]]; then
+      log_info "$phase" "Using ${var_name}=${!var_name} from env"
+      continue
+    fi
+
+    resolved=$(resolve_service_image_tag "$service" "$resolved_app_tag" "$repo_dir")
+    export "${var_name}=${resolved}"
+
+    if [[ "$resolved" != "$resolved_app_tag" ]]; then
+      log_info "$phase" "Resolved ${var_name}=${resolved} (app tag ${resolved_app_tag})"
+    else
+      log_info "$phase" "Resolved ${var_name}=${resolved}"
+    fi
+  done
+}
