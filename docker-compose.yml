@@ -14,12 +14,6 @@ services:
       - /dev/video0:/dev/video0
     volumes:
       - /sys/bus/w1:/sys/bus/w1:ro
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     restart: unless-stopped
 
   frontend:
@@ -37,14 +31,7 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+      - backend
     restart: unless-stopped
 
   nginx:
@@ -54,10 +41,8 @@ services:
     volumes:
       - ./infra/nginx:/etc/nginx/conf.d:ro
     depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
+      - backend
+      - frontend
     restart: unless-stopped
 
   mediamtx:

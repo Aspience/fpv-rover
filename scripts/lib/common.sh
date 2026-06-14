@@ -168,19 +168,6 @@ wait_for_health() {
   return 1
 }
 
-# Wait until nginx can reach backend API and frontend (post-OTA / deploy).
-wait_for_nginx_stack() {
-  local phase="${1:-nginx_stack_check}"
-  local max_attempts="${2:-40}"
-  local interval="${3:-3}"
-  local api_url="${4:-http://localhost/api/health}"
-  local frontend_url="${5:-http://localhost/}"
-
-  log_info "$phase" "Waiting for nginx stack api=${api_url} frontend=${frontend_url}"
-  wait_for_health "$api_url" "$max_attempts" "$interval" "$phase"
-  wait_for_health "$frontend_url" "$max_attempts" "$interval" "$phase"
-}
-
 log_session_env() {
   local phase="$1"
   shift

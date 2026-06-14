@@ -18,7 +18,6 @@ RUN env
 RUN npm run build
 
 FROM caddy:2-alpine
-RUN apk add --no-cache wget
 RUN adduser www-data -G www-data -u 33 -D -H
 RUN chown -R www-data:www-data /config
 RUN chown -R www-data:www-data /data
