@@ -14,3 +14,5 @@ services:
   mediamtx:
     build: !reset null
     image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-mediamtx:${MEDIAMTX_IMAGE_TAG:-${IMAGE_TAG}}
+    environment:
+      - MTX_WEBRTCICEHOSTNAT1TO1IPS=${VITE_RPI_HOST}
