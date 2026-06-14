@@ -17,4 +17,4 @@ export {
 } from './queries'
 export { wsClient, sendMove, sendBrightness, sendRecord } from './websocket'
 export { connectWhep } from './webrtc'
-export { env, apiBaseUrl, wsUrl, whepUrl, assertEnv } from './env'
+export { env, apiBaseUrl, browserHost, wsUrl, whepBaseUrl, whepUrl, assertEnv } from './env'

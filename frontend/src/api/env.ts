@@ -11,24 +11,27 @@ export const env = {
   webrtcPort: Number(import.meta.env.VITE_WEBRTC_PORT ?? 8889),
 } as const
 
-export const apiBaseUrl = (): string => {
+/** Browser-facing host for WebRTC/WHEP (MediaMTX is not proxied through nginx). */
+export const browserHost = (): string => {
   if (import.meta.env.DEV) {
-    return '/api'
+    return env.rpiHost
   }
-  return `http://${env.rpiHost}:${env.apiPort}`
+  if (typeof window !== 'undefined') {
+    return window.location.hostname
+  }
+  return env.rpiHost
 }
+
+export const apiBaseUrl = (): string => '/api'
 
 export const wsUrl = (): string => {
-  if (import.meta.env.DEV) {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${protocol}//${window.location.host}/ws`
-  }
-  return `ws://${env.rpiHost}:${env.apiPort}/ws`
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws`
 }
 
-export const whepUrl = (): string => {
-  return `http://${env.rpiHost}:${env.webrtcPort}/rover/whep`
-}
+export const whepBaseUrl = (): string => `http://${browserHost()}:${env.webrtcPort}`
+
+export const whepUrl = (): string => `${whepBaseUrl()}/rover/whep`
 
 export const assertEnv = (): void => {
   required(import.meta.env.VITE_RPI_HOST, 'VITE_RPI_HOST')

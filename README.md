@@ -82,9 +82,9 @@ cp .env.example .env
 | `ROVER_HEARTBEAT_TIMEOUT_SEC` | `1.0` | backend | Watchdog heartbeat timeout |
 | `ROVER_IO_RETRY_DELAY_SEC` | `2.0` | backend | Hardware I/O retry delay |
 | `ROVER_MEDIAMTX_API_URL` | `http://localhost:9997` | backend | MediaMTX control API |
-| `VITE_RPI_HOST` | `localhost` | frontend | Host for API / WebRTC in production builds |
-| `VITE_API_PORT` | `8000` | frontend | Backend port (dev proxy + production) |
-| `VITE_WEBRTC_PORT` | `8889` | frontend | MediaMTX WebRTC (WHEP) port |
+| `VITE_RPI_HOST` | `localhost` | frontend | Dev server proxy target; production WebRTC fallback |
+| `VITE_API_PORT` | `8000` | frontend | Dev server proxy target |
+| `VITE_WEBRTC_PORT` | `8889` | frontend | MediaMTX WebRTC (WHEP) port in the browser |
 
 Backend loads `ROVER_*` via pydantic-settings (`backend/core/config.py`).  
 Frontend loads `VITE_*` via Vite with `envDir` pointing at the repo root (`frontend/vite.config.ts`).
@@ -151,7 +151,7 @@ The UI talks to the backend over three channels. Keep their contracts aligned wh
 
 Use one root `.env` for both services. Module flags (`ROVER_MODULES_*`) are exposed to the UI via `GET /config`; the frontend fetches them on startup and shows or hides controls accordingly.
 
-When deploying on a Pi or via Docker, set `VITE_RPI_HOST` to the hostname or IP the **browser** uses to reach the rover (not the Docker service name).
+When deploying on a Pi or via Docker, REST and WebSocket use nginx on port 80 (`/api`, `/ws`) — no per-device frontend rebuild needed. WebRTC/WHEP uses `window.location.hostname` and `VITE_WEBRTC_PORT` (not proxied through nginx).
 
 ### 2. REST — module flags
 
@@ -241,7 +241,7 @@ Both `backend` and `frontend` services mount the root `.env`. Frontend build arg
 
 Pi device mounts (`/dev/i2c-1`, `/dev/video0`, 1-Wire) are configured in [`docker-compose.yml`](docker-compose.yml) for the backend service.
 
-For production access through nginx on port 80, set `VITE_RPI_HOST` to the address clients use in the browser. WebRTC (port 8889) is reached directly by the browser, not through nginx.
+Production UI on port 80: REST → `/api`, WebSocket → `/ws` (via nginx). WebRTC/WHEP → `http://<pi-ip>:8889/rover/whep` in the browser.
 
 ---
 
