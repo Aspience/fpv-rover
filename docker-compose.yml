@@ -55,9 +55,11 @@ services:
       - "8889:8889"
       - "8189:8189/udp"
       - "9997:9997"
+    devices:
+      - /dev/i2c-1:/dev/i2c-1
+      - /dev/video0:/dev/video0
     volumes:
       - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
-      - /usr/share/libcamera/ipa/rpi/vc4/imx462.json:/usr/share/libcamera/ipa/rpi/vc4/arducam-pivariety.json:ro
       - /run/udev:/run/udev:ro
     tmpfs:
       - /dev/shm:exec
