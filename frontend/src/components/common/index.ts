@@ -1,5 +1,5 @@
-export { ConnectionAlert } from './ConnectionAlert'
 export { Dashboard } from './Dashboard'
+export { EventLog } from './EventLog'
 export { OTAUpdater, OtaUpdatingOverlay } from './OTAUpdater'
 export { Settings } from './Settings'
 export { VideoPlayer } from './VideoPlayer'

@@ -11,9 +11,16 @@ export interface ConfigResponse {
   modules: ModulesConfig
 }
 
+export interface ServiceVersions {
+  backend: string
+  frontend: string
+  mediamtx: string
+}
+
 export interface HealthResponse {
   status: string
   version: string
+  services: ServiceVersions
 }
 
 export interface UpdateCheckResponse {

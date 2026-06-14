@@ -10,7 +10,7 @@ import {
 import { Badge, Button } from '@/components/ui'
 import { useSystemStore } from '@/store/systemStore'
 
-import './OTAUpdater.css'
+const formatVersion = (version: string) => (version.startsWith('v') ? version : `v${version}`)
 
 export const OTAUpdater = () => {
   const { t } = useTranslation()
@@ -83,19 +83,29 @@ export const OTAUpdater = () => {
   }
 
   const isBusy = otaStatus === 'checking' || otaStatus === 'updating'
+  const services = health?.services
 
   return (
-    <div className="ota-updater">
-      <p className="ota-updater__version">
-        {t('otaCurrentVersion')}: {health?.version ?? '—'}
+    <div className="mt-3 flex flex-col gap-2 border-t border-osd-primary/20 pt-3">
+      <p className="m-0 text-osd-xs text-osd-muted">
+        {t('otaCurrentVersion')}: {health?.version ? formatVersion(health.version) : '—'}
       </p>
+      {services ? (
+        <p className="m-0 text-[length:calc(var(--text-osd-xs)*0.9)] leading-snug text-osd-muted/75">
+          {t('otaServiceBackend')} {formatVersion(services.backend)}
+          {' · '}
+          {t('otaServiceFrontend')} {formatVersion(services.frontend)}
+          {' · '}
+          {t('otaServiceMediamtx')} {formatVersion(services.mediamtx)}
+        </p>
+      ) : null}
 
       <Button variant="ghost" disabled={isBusy} onClick={handleCheck}>
         {otaStatus === 'checking' ? t('otaChecking') : t('otaCheckUpdates')}
       </Button>
 
       {otaStatus === 'update_available' && latestVersion ? (
-        <div className="ota-updater__available">
+        <div className="flex flex-col gap-2">
           <Badge tone="primary">
             {t('otaNewVersion')}: {latestVersion}
           </Badge>
@@ -106,12 +116,12 @@ export const OTAUpdater = () => {
       ) : null}
 
       {otaStatus === 'success' ? (
-        <p className="ota-updater__success">{t('otaUpdateSuccess')}</p>
+        <p className="m-0 text-osd-xs text-osd-primary">{t('otaUpdateSuccess')}</p>
       ) : null}
 
       {otaStatus === 'error' && otaError ? (
-        <div className="ota-updater__error">
-          <p>{otaError}</p>
+        <div className="flex flex-col gap-1.5">
+          <p className="m-0 text-osd-xs text-osd-danger">{otaError}</p>
           <Button variant="ghost" onClick={handleCheck}>
             {t('otaRetry')}
           </Button>

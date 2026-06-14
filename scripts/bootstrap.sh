@@ -356,6 +356,7 @@ docker_compose_deploy() {
   load_env_files docker_compose_deploy "$INSTALL_DIR"
   export ROVER_OTA_INSTALL_DIR="$INSTALL_DIR"
   export_compose_image_tags "${IMAGE_TAG:-$TAG}" "$INSTALL_DIR" docker_compose_deploy
+  persist_image_tags "${INSTALL_DIR}/.env" "${IMAGE_TAG:-$TAG}"
   log_info docker_compose_deploy "Using IMAGE_TAG=${IMAGE_TAG} BACKEND_IMAGE_TAG=${BACKEND_IMAGE_TAG} FRONTEND_IMAGE_TAG=${FRONTEND_IMAGE_TAG} MEDIAMTX_IMAGE_TAG=${MEDIAMTX_IMAGE_TAG}"
 
   run_cmd docker_compose_deploy "compose pull" $COMPOSE pull

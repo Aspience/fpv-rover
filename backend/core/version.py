@@ -3,37 +3,25 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
-from core.config import REPO_ROOT
-
-VERSION_FILE = REPO_ROOT / "version.txt"
+from core.config import get_settings
+from core.schemas.health import ServiceVersions
 
 
 def normalize_tag(tag: str) -> str:
     return tag.strip().removeprefix("v")
 
 
-def _version_file_paths() -> tuple[Path, ...]:
-    paths: list[Path] = []
-    install_dir = os.environ.get("ROVER_OTA_INSTALL_DIR")
-    if install_dir:
-        paths.append(Path(install_dir) / "version.txt")
-    paths.append(VERSION_FILE)
-    return tuple(paths)
-
-
-def read_version_file() -> str | None:
-    for path in _version_file_paths():
-        if path.is_file():
-            text = path.read_text(encoding="utf-8").strip()
-            if text:
-                return text
-    return None
-
-
 def get_app_version(fallback: str = "0.0.0") -> str:
-    from_file = read_version_file()
-    if from_file is not None:
-        return from_file
-    return fallback
+    settings = get_settings()
+    return normalize_tag(settings.app_version or fallback)
+
+
+def get_service_versions() -> ServiceVersions:
+    settings = get_settings()
+    release = get_app_version(settings.app_version)
+    return ServiceVersions(
+        backend=normalize_tag(os.environ.get("BACKEND_IMAGE_TAG", release)),
+        frontend=normalize_tag(os.environ.get("FRONTEND_IMAGE_TAG", release)),
+        mediamtx=normalize_tag(os.environ.get("MEDIAMTX_IMAGE_TAG", release)),
+    )

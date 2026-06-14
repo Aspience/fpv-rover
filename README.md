@@ -426,7 +426,7 @@ FRONTEND_IMAGE_TAG=v0.2.0
 MEDIAMTX_IMAGE_TAG=v0.1.9
 ```
 
-Release assets include `version.txt`, `image-tags.env`, `docker-compose.yml`, `docker-compose.prod.yml`, `infra/**/*`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
+Release assets include `image-tags.env`, `docker-compose.yml`, `docker-compose.prod.yml`, `infra/**/*`, `scripts/ota_update.sh`, `scripts/bootstrap.sh`, `scripts/lib/common.sh`, and `.env.example`.
 
 ### Updating from the UI
 
