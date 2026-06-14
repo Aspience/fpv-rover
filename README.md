@@ -81,7 +81,7 @@ cp .env.example .env
 | `ROVER_WS_TELEMETRY_HZ` | `20` | backend | WebSocket telemetry rate |
 | `ROVER_HEARTBEAT_TIMEOUT_SEC` | `1.0` | backend | Watchdog heartbeat timeout |
 | `ROVER_IO_RETRY_DELAY_SEC` | `2.0` | backend | Hardware I/O retry delay |
-| `ROVER_MEDIAMTX_API_URL` | `http://localhost:9997` | backend | MediaMTX control API |
+| `ROVER_MEDIAMTX_API_URL` | `http://mediamtx:9997` | backend | MediaMTX control API (Docker service name) |
 | `VITE_RPI_HOST` | `localhost` | frontend | Dev server proxy target; production WebRTC fallback |
 | `VITE_API_PORT` | `8000` | frontend | Dev server proxy target |
 | `VITE_WEBRTC_PORT` | `8889` | frontend | MediaMTX WebRTC (WHEP) port in the browser |
