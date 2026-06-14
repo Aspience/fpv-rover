@@ -10,3 +10,7 @@ services:
   frontend:
     build: !reset null
     image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-frontend:${IMAGE_TAG}
+
+  mediamtx:
+    build: !reset null
+    image: ${FPV_ROVER_IMAGE_REGISTRY}/${ROVER_GITHUB_OWNER}/${ROVER_GITHUB_REPO}-mediamtx:${IMAGE_TAG}
