@@ -63,6 +63,7 @@ phase_ok compose_pull
 
 phase_start compose_up
 run_cmd compose_up "compose up -d" $COMPOSE up -d --remove-orphans
+run_cmd compose_up "restart nginx" $COMPOSE restart nginx
 run_cmd compose_up "compose ps" $COMPOSE ps
 phase_ok compose_up
 
