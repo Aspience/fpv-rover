@@ -267,6 +267,7 @@ setup_env_files() {
   set_env_key "$env_file" "ROVER_APP_VERSION" "$app_version"
   set_env_key "$env_file" "ROVER_OTA_SSH_KEY_PATH" "$SSH_KEY"
   set_env_key "$env_file" "ROVER_OTA_SCRIPT" "$ota_script"
+  set_env_key "$env_file" "ROVER_MEDIAMTX_API_URL" "http://mediamtx:9997"
 
   log_info setup_env_files "Created ${env_file} for user $(whoami)"
   log_info setup_env_files "Set keys: ROVER_OTA_ENABLED, ROVER_OTA_INSTALL_DIR, VITE_RPI_HOST=${vite_host}, IMAGE_TAG=${TAG}, ROVER_APP_VERSION=${app_version}, ROVER_OTA_SSH_KEY_PATH=${SSH_KEY}, ROVER_OTA_SCRIPT"

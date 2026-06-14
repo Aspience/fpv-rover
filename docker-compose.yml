@@ -46,11 +46,15 @@ services:
     restart: unless-stopped
 
   mediamtx:
-    image: bluenviron/mediamtx:latest
+    image: bluenviron/mediamtx:latest-rpi
+    privileged: true
     ports:
       - "8554:8554"
       - "8889:8889"
       - "9997:9997"
     volumes:
       - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      - /run/udev:/run/udev:ro
+    tmpfs:
+      - /dev/shm:exec
     restart: unless-stopped
