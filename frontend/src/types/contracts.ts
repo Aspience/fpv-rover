@@ -99,16 +99,10 @@ export interface SetBrightnessCommand {
   level: number
 }
 
-export interface RecordCommand {
-  cmd: 'record'
-  state: 'start' | 'stop'
-}
-
 export type ClientCommand =
   | HeartbeatCommand
   | MoveCommand
   | SetBrightnessCommand
-  | RecordCommand
 
 export interface ErrorMessage {
   type: 'error'

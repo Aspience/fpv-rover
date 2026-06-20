@@ -3,17 +3,9 @@ import { useEffect } from 'react'
 import { sendMove } from '@/api/websocket'
 import { useControlStore } from '@/store/controlStore'
 import { useSystemStore } from '@/store/systemStore'
+import { applyDeadzone, axisToPwm } from '@/utils'
 
-const DEADZONE = 0.1
 const SEND_HZ = 20
-
-const applyDeadzone = (value: number): number => {
-  return Math.abs(value) < DEADZONE ? 0 : value
-}
-
-const axisToPwm = (value: number): number => {
-  return Math.round(Math.abs(applyDeadzone(value)) * 100)
-}
 
 export const useGamepad = (): void => {
   const motionEnabled = useSystemStore((s) => s.modules.motion)

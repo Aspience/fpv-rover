@@ -1,6 +1,8 @@
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { Button } from '@/components/ui/Button'
+
 interface ModalProps {
   open: boolean
   children: ReactNode
@@ -26,7 +28,7 @@ export const Modal = ({
 
   return (
     <div
-      className={`fixed inset-0 z-modal flex items-center justify-center bg-black/60 backdrop-blur-sm ${className}`.trim()}
+      className={`mx-auto w-[468px] max-w-full fixed inset-0 z-modal flex items-center justify-center ${className}`.trim()}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -35,7 +37,7 @@ export const Modal = ({
         <section
           className={`rounded-lg border border-osd-primary/30 bg-osd-panel p-3 px-4 backdrop-blur-sm ${panelClassName}`.trim()}
         >
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
             {title ? (
               <h2
                 id="modal-title"
@@ -45,14 +47,14 @@ export const Modal = ({
               </h2>
             ) : null}
             {onClose ? (
-              <button
-                type="button"
-                className="rounded p-0.5 text-osd-muted transition-colors hover:text-osd-primary"
+              <Button
+                variant="subtle"
+                size="icon-sm"
                 onClick={onClose}
                 aria-label={closeLabel}
               >
                 <X className="size-4" aria-hidden="true" />
-              </button>
+              </Button>
             ) : null}
           </div>
           {children}

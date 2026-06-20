@@ -1,12 +1,8 @@
 import type { ClientCommand } from '@/types/contracts'
-import {
-  ClientCommandSchema,
-  ErrorMessageSchema,
-  TelemetryMessageSchema,
-} from '@/types/schemas'
+import { ClientCommandSchema } from '@/types/schemas'
 import { useSystemStore } from '@/store/systemStore'
-import { useTelemetryStore } from '@/store/telemetryStore'
 import { wsUrl } from '@/api/env'
+import { handleSocketMessage } from '@/utils'
 
 const HEARTBEAT_MS = 500
 const MAX_BACKOFF_MS = 10_000
@@ -56,7 +52,7 @@ class WebSocketClient {
     }
 
     socket.onmessage = (event) => {
-      this.handleMessage(String(event.data))
+      handleSocketMessage(String(event.data))
     }
 
     socket.onclose = () => {
@@ -68,23 +64,6 @@ class WebSocketClient {
     socket.onerror = () => {
       socket.close()
     }
-  }
-
-  private handleMessage(raw: string): void {
-    let json: unknown
-    try {
-      json = JSON.parse(raw)
-    } catch {
-      return
-    }
-
-    const telemetry = TelemetryMessageSchema.safeParse(json)
-    if (telemetry.success) {
-      useTelemetryStore.getState().updateFromModules(telemetry.data.modules)
-      return
-    }
-
-    ErrorMessageSchema.safeParse(json)
   }
 
   private startHeartbeat(): void {
@@ -124,8 +103,4 @@ export const sendMove = (pwmLeft: number, pwmRight: number, steer = 0): void => 
 
 export const sendBrightness = (level: number): void => {
   wsClient.send({ cmd: 'set_brightness', level })
-}
-
-export const sendRecord = (state: 'start' | 'stop'): void => {
-  wsClient.send({ cmd: 'record', state })
 }

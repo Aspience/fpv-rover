@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 import type { ImuData, LightData, PowerData, ThermalData } from '@/types/contracts'
+import { attitudeFromImu } from '@/utils/telemetry'
 
 interface TelemetryState {
   power: PowerData | null
@@ -15,12 +16,6 @@ interface TelemetryState {
     imu?: ImuData
     thermal?: ThermalData
   }) => void
-}
-
-const attitudeFromImu = (imu: ImuData): { pitch: number; roll: number } => {
-  const pitch = (Math.atan2(imu.ay_g, imu.az_g) * 180) / Math.PI
-  const roll = (Math.atan2(-imu.ax_g, imu.az_g) * 180) / Math.PI
-  return { pitch, roll }
 }
 
 export const useTelemetryStore = create<TelemetryState>((set) => ({

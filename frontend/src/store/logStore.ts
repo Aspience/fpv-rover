@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import { createLogId } from '@/utils/id'
+
 export type LogTone = 'default' | 'primary' | 'warning' | 'danger'
 
 export interface LogEntry {
@@ -20,13 +22,6 @@ interface LogState {
   appendLog: (entry: AppendLogInput) => void
   removeLog: (id: string) => void
   clearLogs: () => void
-}
-
-let nextLogId = 0
-
-const createLogId = () => {
-  nextLogId += 1
-  return `log-${nextLogId}`
 }
 
 export const useLogStore = create<LogState>((set) => ({

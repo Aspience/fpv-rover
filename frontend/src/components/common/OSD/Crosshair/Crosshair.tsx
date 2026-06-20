@@ -1,6 +1,13 @@
+import { selectCameraReady } from '@/store/selectors'
+import { useSystemStore } from '@/store/systemStore'
+
 import './Crosshair.css'
 
 export const Crosshair = () => {
+  const cameraAvailable = useSystemStore(selectCameraReady)
+
+  if (!cameraAvailable) return null
+
   return (
     <div className="crosshair">
       <div className="crosshair__reticle">

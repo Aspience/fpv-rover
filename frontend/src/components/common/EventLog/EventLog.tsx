@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useLogStore, type LogEntry, type LogTone } from '@/store/logStore'
+import { formatTimestamp } from '@/utils'
 
 const toneClass: Record<LogTone, string> = {
   default: 'text-osd-muted',
@@ -13,12 +15,16 @@ interface EventLogProps {
   className?: string
 }
 
-const LogLine = ({ entry }: { entry: LogEntry }) => (
-  <li className={`leading-snug ${toneClass[entry.tone]}`}>{entry.message}</li>
+const LogLine = ({ entry, locale }: { entry: LogEntry; locale: string }) => (
+  <li className={`leading-snug ${toneClass[entry.tone]}`}>
+    <span className="text-osd-muted/70">{formatTimestamp(entry.timestamp, locale)}</span>{' '}
+    {entry.message}
+  </li>
 )
 
 export const EventLog = ({ className = '' }: EventLogProps) => {
   const entries = useLogStore((state) => state.entries)
+  const { i18n } = useTranslation()
   const listRef = useRef<HTMLUListElement>(null)
 
   useEffect(() => {
@@ -40,7 +46,9 @@ export const EventLog = ({ className = '' }: EventLogProps) => {
         {entries.length === 0 ? (
           <li className="text-osd-muted/50">&nbsp;</li>
         ) : (
-          entries.map((entry) => <LogLine key={entry.id} entry={entry} />)
+          entries.map((entry) => (
+            <LogLine key={entry.id} entry={entry} locale={i18n.language} />
+          ))
         )}
       </ul>
     </aside>

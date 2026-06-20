@@ -9,8 +9,7 @@ import {
 } from '@/api/queries'
 import { Badge, Button } from '@/components/ui'
 import { useSystemStore } from '@/store/systemStore'
-
-const formatVersion = (version: string) => (version.startsWith('v') ? version : `v${version}`)
+import { formatVersion } from '@/utils'
 
 export const OTAUpdater = () => {
   const { t } = useTranslation()
@@ -87,9 +86,6 @@ export const OTAUpdater = () => {
 
   return (
     <div className="mt-3 flex flex-col gap-2 border-t border-osd-primary/20 pt-3">
-      <p className="m-0 text-osd-xs text-osd-muted">
-        {t('otaCurrentVersion')}: {health?.version ? formatVersion(health.version) : '—'}
-      </p>
       {services ? (
         <p className="m-0 text-[length:calc(var(--text-osd-xs)*0.9)] leading-snug text-osd-muted/75">
           {t('otaServiceBackend')} {formatVersion(services.backend)}
