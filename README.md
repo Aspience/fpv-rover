@@ -397,6 +397,7 @@ tail -100 /opt/fpv-rover/logs/bootstrap.log
 | `ROVER_OTA_INSTALL_DIR` | `/opt/fpv-rover` | Install path on the device |
 | `ROVER_OTA_SCRIPT` | `/opt/fpv-rover/scripts/ota_update.sh` | Update script path |
 | `ROVER_OTA_SSH_KEY_PATH` | *(empty in template)* | Host path to deploy key; bootstrap sets `$HOME/.ssh/fpv_rover_deploy` for the user running install |
+| `ROVER_OTA_ASSUME_YES` | *(empty)* | Set `1`/`true` to skip the manual-update confirmation prompt (same as `--yes`) |
 | `ROVER_GITHUB_OWNER` | `aspience` | GitHub owner for release check and GHCR image path |
 | `ROVER_GITHUB_REPO` | `fpv-rover` | GitHub repo for release check and GHCR image path |
 | `ROVER_GITHUB_TOKEN` | *(empty)* | Optional PAT for GitHub API rate limits |
@@ -436,11 +437,20 @@ Open **Settings** → **Check for updates** → **Install update**. The UI shows
 
 ```bash
 cd /opt/fpv-rover
-./scripts/ota_update.sh v0.2.0   # upgrade
-./scripts/ota_update.sh v0.1.0   # rollback
+./scripts/ota_update.sh v0.2.0        # upgrade (prompts for confirmation)
+./scripts/ota_update.sh v0.1.0        # rollback (prompts for confirmation)
+./scripts/ota_update.sh v0.2.0 --yes  # skip the confirmation prompt
 ```
 
 The script waits 3 seconds (so the API can respond), fetches the git tag, resolves per-service image tags from `image-tags.env` (with nearest-tag fallback for older releases), pulls Docker images, and runs `docker compose up -d`. It never overwrites `.env` or `.env.local`.
+
+Before any destructive step (`git reset --hard`), the script prints which versions are involved (`Update requested: <current> -> <target>`) and asks for confirmation:
+
+```text
+Update from v0.1.0 to v0.2.0? [y/N]
+```
+
+The prompt is skipped automatically when running non-interactively (e.g. the backend OTA API, which has no TTY), when `--yes`/`-y` is passed, or when `ROVER_OTA_ASSUME_YES=1` is set — so automated updates never hang on input. Answering anything other than `y`/`yes` cancels the update (exit code 0) before any changes are made.
 
 **Logs:** `/opt/fpv-rover/logs/ota.log`
 

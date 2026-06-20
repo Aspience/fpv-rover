@@ -5,7 +5,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib/common.sh
 source "${SCRIPT_DIR}/lib/common.sh"
 
-CLI_TAG="${1:-}"
+CLI_TAG=""
+ASSUME_YES=false
+for arg in "$@"; do
+  case "$arg" in
+    -y | --yes) ASSUME_YES=true ;;
+    *) [[ -z "$CLI_TAG" ]] && CLI_TAG="$arg" ;;
+  esac
+done
+
 INSTALL_DIR_CANDIDATE="${ROVER_OTA_INSTALL_DIR:-/opt/fpv-rover}"
 
 # Load .env early so ROVER_OTA_INSTALL_DIR / IMAGE_TAG from file are visible before logging.
@@ -30,6 +38,8 @@ phase_ok grace_period
 
 phase_start load_env
 load_env_files load_env "$INSTALL_DIR"
+CURRENT_VERSION="${IMAGE_TAG:-${ROVER_APP_VERSION:-}}"
+CURRENT_VERSION="${CURRENT_VERSION:-$(git describe --tags --always 2>/dev/null || echo unknown)}"
 TAG="${CLI_TAG:-${IMAGE_TAG:-latest}}"
 export IMAGE_TAG="$TAG"
 export ROVER_OTA_INSTALL_DIR="$INSTALL_DIR"
@@ -43,6 +53,13 @@ log_session_env ota \
   "IMAGE_TAG=${IMAGE_TAG}" \
   "ROVER_PORT=${ROVER_PORT:-8000}" \
   "ROVER_OTA_SSH_KEY_PATH=${ROVER_OTA_SSH_KEY_PATH:-<unset>}"
+
+phase_start confirm
+if ! confirm_update confirm "${CURRENT_VERSION:-unknown}" "$TAG" "$ASSUME_YES"; then
+  log_warn confirm "Update cancelled by user"
+  exit 0
+fi
+phase_ok confirm
 
 phase_start git_fetch_checkout
 GIT_REF=$(resolve_git_ref "$TAG" "$INSTALL_DIR")
