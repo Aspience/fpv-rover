@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -6,7 +7,11 @@ import { useSystemStore } from '@/store/systemStore'
 
 import './VideoPlayer.css'
 
-export const VideoPlayer = () => {
+interface VideoPlayerProps {
+  className?: string
+}
+
+export const VideoPlayer = ({ className = '' }: VideoPlayerProps) => {
   const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement>(null)
   const cameraEnabled = useSystemStore((s) => s.modules.camera)
@@ -30,7 +35,7 @@ export const VideoPlayer = () => {
 
   if (!cameraEnabled) {
     return (
-      <div className="video-player__placeholder">
+      <div className={clsx('video-player__placeholder', className)}>
         {t('cameraDisabled')}
       </div>
     )
@@ -42,7 +47,7 @@ export const VideoPlayer = () => {
       autoPlay
       playsInline
       muted
-      className="video-player"
+      className={clsx('video-player', className)}
     />
   )
 }

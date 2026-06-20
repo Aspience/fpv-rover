@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Settings as SettingsIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -9,11 +8,15 @@ import {
 } from '@/i18n'
 
 import { OTAUpdater } from '@/components/common/OTAUpdater'
-import { Button, Modal } from '@/components/ui'
+import { Modal } from '@/components/ui'
 
-export const Settings = () => {
+interface SettingsProps {
+  open: boolean
+  onClose: () => void
+}
+
+export const Settings = ({ open, onClose }: SettingsProps) => {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
   const [preference, setPreference] = useState<LocalePreference>(getLocalePreference)
 
   const handleChange = (next: LocalePreference) => {
@@ -22,24 +25,13 @@ export const Settings = () => {
   }
 
   return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 right-4 z-dashboard backdrop-blur-sm"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-label={open ? t('settingsClose') : t('settingsOpen')}
-      >
-        <SettingsIcon className="size-5" aria-hidden="true" />
-      </Button>
-
-      <Modal
-        open={open}
-        title={t('settings')}
-        onClose={() => setOpen(false)}
-        closeLabel={t('settingsClose')}
-        panelClassName="min-w-48 w-full"
-      >
+    <Modal
+      open={open}
+      title={t('settings')}
+      onClose={onClose}
+      closeLabel={t('settingsClose')}
+      panelClassName="min-w-48 w-full"
+    >
         <div className="flex flex-col gap-1">
           <label className="text-osd-xs text-osd-primary/70" htmlFor="locale-select">
             {t('language')}
@@ -59,7 +51,6 @@ export const Settings = () => {
         </div>
 
         <OTAUpdater />
-      </Modal>
-    </>
+    </Modal>
   )
 }

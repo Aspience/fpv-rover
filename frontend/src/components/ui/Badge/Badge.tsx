@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import type { HTMLAttributes } from 'react'
 
 import './Badge.css'
@@ -22,7 +23,7 @@ export const Badge = ({
 }: BadgeProps) => {
   return (
     <span
-      className={`badge ${toneClass[tone]} ${className}`.trim()}
+      className={clsx('badge', toneClass[tone], className)}
       {...props}
     />
   )

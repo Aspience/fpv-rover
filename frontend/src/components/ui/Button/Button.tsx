@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import type { ButtonHTMLAttributes } from 'react'
 
 import './Button.css'
@@ -29,9 +30,7 @@ export const Button = ({
   className = '',
   ...props
 }: ButtonProps) => {
-  const classes = ['button', variantClass[variant], sizeClass[size], className]
-    .filter(Boolean)
-    .join(' ')
+  const classes = clsx('button', variantClass[variant], sizeClass[size], className)
 
   return <button type="button" className={classes} {...props} />
 }

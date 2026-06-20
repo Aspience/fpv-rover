@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import { Lightbulb } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,7 +9,11 @@ import { useSystemStore } from '@/store/systemStore'
 
 import './Dashboard.css'
 
-export const Dashboard = () => {
+interface DashboardProps {
+  className?: string
+}
+
+export const Dashboard = ({ className = '' }: DashboardProps) => {
   const { t } = useTranslation()
   const modules = useSystemStore((s) => s.modules)
   const brightness = useControlStore((s) => s.brightness)
@@ -17,7 +22,7 @@ export const Dashboard = () => {
   if (!modules.light) return null
 
   return (
-    <div className="dashboard">
+    <div className={clsx('dashboard', className)}>
       <div className="dashboard__controls">
         <div className="dashboard__light">
           <Lightbulb className="dashboard__icon" />
