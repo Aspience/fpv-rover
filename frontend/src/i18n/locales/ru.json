@@ -21,6 +21,8 @@
   "otaInstallUpdate": "Установить обновление",
   "otaUpdating": "Обновление системы… Ровер уходит на перезагрузку. Пожалуйста, подождите.",
   "otaUpdateSuccess": "Обновление успешно установлено",
+  "otaUpToDate": "Установлена последняя версия",
+  "otaUpdateAvailableLog": "Доступна новая версия",
   "otaRetry": "Повторить",
   "thermal": {
     "motor_steering": "Рулевой",

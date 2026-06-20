@@ -15,6 +15,7 @@ interface AppendLogInput {
   id?: string
   message: string
   tone?: LogTone
+  skipIfExists?: boolean
 }
 
 interface LogState {
@@ -26,10 +27,13 @@ interface LogState {
 
 export const useLogStore = create<LogState>((set) => ({
   entries: [],
-  appendLog: ({ id, message, tone = 'default' }) =>
+  appendLog: ({ id, message, tone = 'default', skipIfExists = false }) =>
     set((state) => {
       const entryId = id ?? createLogId()
       if (id && state.entries.some((entry) => entry.id === id)) {
+        if (skipIfExists) {
+          return state
+        }
         return {
           entries: state.entries.map((entry) =>
             entry.id === entryId

@@ -21,6 +21,8 @@
   "otaInstallUpdate": "Install update",
   "otaUpdating": "Updating system… The rover is rebooting. Please wait.",
   "otaUpdateSuccess": "Update installed successfully",
+  "otaUpToDate": "Latest version installed",
+  "otaUpdateAvailableLog": "New version available",
   "otaRetry": "Retry",
   "thermal": {
     "motor_steering": "Steering",
