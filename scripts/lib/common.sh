@@ -383,23 +383,28 @@ normalize_app_tag() {
   fi
 }
 
-# Load per-service image tags from release artifact without overriding .env values.
-load_image_tags() {
-  local repo_dir="$1"
-  local tag_file="${repo_dir}/image-tags.env"
+# Read a single KEY=value from an env-style file without touching the environment.
+read_env_value() {
+  local file="$1"
+  local key="$2"
+  [[ -f "$file" ]] || return 1
 
-  if [[ ! -f "$tag_file" ]]; then
-    return 0
-  fi
-
+  local line
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-    local key="${line%%=*}"
-    local value="${line#*=}"
-    if [[ -z "${!key:-}" ]]; then
-      export "$key=$value"
+    if [[ "${line%%=*}" == "$key" ]]; then
+      printf '%s\n' "${line#*=}"
+      return 0
     fi
-  done <"$tag_file"
+  done <"$file"
+  return 1
+}
+
+# True if KEY is explicitly defined (uncommented) in the given env file.
+env_file_has_key() {
+  local file="$1"
+  local key="$2"
+  [[ -f "$file" ]] && grep -qE "^[[:space:]]*${key}=" "$file"
 }
 
 # Find the nearest existing image tag at or below target_tag (fallback for releases without image-tags.env).
@@ -434,23 +439,38 @@ resolve_service_image_tag() {
   echo "$target_tag"
 }
 
+# Resolve per-service image tags for compose. Precedence (highest first):
+#   1. Explicit user override in .env.local (pin/rollback)
+#   2. image-tags.env from the checked-out release (authoritative manifest)
+#   3. Nearest existing GHCR tag at/below the app tag (fallback for old releases)
+# The release manifest deliberately wins over per-service tags previously
+# persisted to .env, so a `latest` OTA always advances to the checked-out
+# release instead of sticking on the version pinned by the prior run.
 export_compose_image_tags() {
   local app_tag="$1"
   local repo_dir="${2:-.}"
   local phase="${3:-compose_tags}"
   local resolved_app_tag
-  local service var_name resolved
+  local service var_name resolved manifest_val
+  local env_local="${repo_dir}/.env.local"
+  local manifest="${repo_dir}/image-tags.env"
 
   resolved_app_tag=$(normalize_app_tag "$app_tag" "$repo_dir")
   export IMAGE_TAG="$app_tag"
 
-  load_image_tags "$repo_dir"
-
   for service in backend frontend mediamtx; do
     var_name=$(service_image_tag_var "$service")
 
-    if [[ -n "${!var_name:-}" ]]; then
-      log_info "$phase" "Using ${var_name}=${!var_name} from env"
+    if env_file_has_key "$env_local" "$var_name"; then
+      export "${var_name}=${!var_name:-}"
+      log_info "$phase" "Using ${var_name}=${!var_name:-} from .env.local override"
+      continue
+    fi
+
+    manifest_val=$(read_env_value "$manifest" "$var_name" || true)
+    if [[ -n "$manifest_val" ]]; then
+      export "${var_name}=${manifest_val}"
+      log_info "$phase" "Using ${var_name}=${manifest_val} from image-tags.env"
       continue
     fi
 
@@ -458,9 +478,9 @@ export_compose_image_tags() {
     export "${var_name}=${resolved}"
 
     if [[ "$resolved" != "$resolved_app_tag" ]]; then
-      log_info "$phase" "Resolved ${var_name}=${resolved} (app tag ${resolved_app_tag})"
+      log_info "$phase" "Resolved ${var_name}=${resolved} (app tag ${resolved_app_tag}, no manifest)"
     else
-      log_info "$phase" "Resolved ${var_name}=${resolved}"
+      log_info "$phase" "Resolved ${var_name}=${resolved} (no manifest)"
     fi
   done
 }

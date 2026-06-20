@@ -403,9 +403,11 @@ tail -100 /opt/fpv-rover/logs/bootstrap.log
 | `ROVER_GITHUB_TOKEN` | *(empty)* | Optional PAT for GitHub API rate limits |
 | `FPV_ROVER_IMAGE_REGISTRY` | `ghcr.io` | Container registry for production images |
 | `IMAGE_TAG` | `latest` | Target release tag for git checkout and app version |
-| `BACKEND_IMAGE_TAG` | *(auto)* | Override backend image tag (pin/rollback) |
-| `FRONTEND_IMAGE_TAG` | *(auto)* | Override frontend image tag (pin/rollback) |
-| `MEDIAMTX_IMAGE_TAG` | *(auto)* | Override mediamtx image tag (pin/rollback) |
+| `BACKEND_IMAGE_TAG` | *(auto)* | Pin backend image tag — set in `.env.local` to override (see note) |
+| `FRONTEND_IMAGE_TAG` | *(auto)* | Pin frontend image tag — set in `.env.local` to override (see note) |
+| `MEDIAMTX_IMAGE_TAG` | *(auto)* | Pin mediamtx image tag — set in `.env.local` to override (see note) |
+
+> **Per-service tag precedence:** on deploy/OTA, tags are resolved as (1) explicit pin in `.env.local`, then (2) `image-tags.env` from the checked-out release, then (3) nearest existing GHCR tag. The release manifest deliberately overrides the per-service tags the script persists to `.env`, so a `latest` OTA always advances to the checked-out release. To pin a specific service tag, put it in `.env.local` (not `.env`, which the OTA script rewrites).
 
 **Custom env on device:** edit `.env` for shared settings; add `.env.local` for overrides only (both are gitignored). Compose loads `.env` then optional `.env.local`. Do not copy the full `.env.example` into `.env.local` — it overrides bootstrap values such as `ROVER_OTA_ENABLED`.
 
