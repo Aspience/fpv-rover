@@ -8,6 +8,7 @@ import {
   useOtaRecovery,
 } from '@/api/queries'
 import { Badge, Button } from '@/components/ui'
+import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
 import { formatVersion } from '@/utils'
 
@@ -22,6 +23,7 @@ export const OTAUpdater = () => {
   const [recoverySession, setRecoverySession] = useState(0)
 
   const { data: health } = useHealthQuery()
+  const appendLog = useLogStore((s) => s.appendLog)
   const checkMutation = useCheckUpdateMutation()
   const applyMutation = useApplyUpdateMutation()
 
@@ -61,6 +63,15 @@ export const OTAUpdater = () => {
       onSuccess: (result) => {
         setLatestVersion(result.latest)
         setOtaStatus(result.has_update ? 'update_available' : 'idle')
+        if (!result.has_update) {
+          const versions = health?.services
+            ? `${t('otaServiceBackend')} ${formatVersion(health.services.backend)} · ${t('otaServiceFrontend')} ${formatVersion(health.services.frontend)} · ${t('otaServiceMediamtx')} ${formatVersion(health.services.mediamtx)}`
+            : formatVersion(result.current)
+          appendLog({
+            message: `${t('otaUpToDate')}: ${versions}`,
+            tone: 'primary',
+          })
+        }
       },
       onError: (error) => {
         setOtaError(error instanceof Error ? error.message : 'Update check failed')
