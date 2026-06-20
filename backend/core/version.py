@@ -17,6 +17,18 @@ def get_app_version(fallback: str = "0.0.0") -> str:
     return normalize_tag(settings.app_version or fallback)
 
 
+def get_current_version() -> str:
+    """Deployed release version.
+
+    Prefers the running backend image tag (set by docker-compose / the OTA
+    script via ``IMAGE_TAG``) over the build-time ``ROVER_APP_VERSION`` baseline,
+    so update checks compare against what is actually deployed.
+    """
+    settings = get_settings()
+    image_tag = os.environ.get("BACKEND_IMAGE_TAG", "").strip()
+    return normalize_tag(image_tag or settings.app_version or "0.0.0")
+
+
 def get_service_versions() -> ServiceVersions:
     settings = get_settings()
     release = get_app_version(settings.app_version)

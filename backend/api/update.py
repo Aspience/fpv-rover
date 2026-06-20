@@ -12,7 +12,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from core.config import get_settings
 from core.schemas.update import UpdateApplyResponse, UpdateCheckResponse
-from core.version import get_app_version, normalize_tag
+from core.version import get_current_version, normalize_tag
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def _run_ota_script(tag: str) -> None:
 
 @router.get("/update/check", response_model=UpdateCheckResponse, tags=["update"])
 async def check_update() -> UpdateCheckResponse:
-    current = get_app_version(get_settings().app_version)
+    current = get_current_version()
     latest = await _fetch_latest_release_tag()
     has_update = latest is not None and normalize_tag(latest) != normalize_tag(current)
     return UpdateCheckResponse(current=current, latest=latest, has_update=has_update)
