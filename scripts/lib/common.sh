@@ -87,6 +87,41 @@ phase_skip() {
   log_info "$1" "SKIP: $2"
 }
 
+# Ask the user to confirm the update. Auto-confirms when ROVER_OTA_ASSUME_YES is
+# set or when stdin is not a TTY (e.g. invoked by the backend OTA API), so that
+# automated updates keep working without hanging on input.
+confirm_update() {
+  local phase="$1"
+  local from="$2"
+  local to="$3"
+  local assume_yes="${4:-false}"
+
+  log_info "$phase" "Update requested: ${from} -> ${to}"
+
+  if [[ "$assume_yes" == "true" || "${ROVER_OTA_ASSUME_YES:-}" == "1" || "${ROVER_OTA_ASSUME_YES:-}" == "true" ]]; then
+    log_info "$phase" "Auto-confirmed (assume-yes enabled)"
+    return 0
+  fi
+
+  if [[ ! -t 0 ]]; then
+    log_info "$phase" "Non-interactive session; proceeding without prompt"
+    return 0
+  fi
+
+  local reply=""
+  printf 'Update from %s to %s? [y/N] ' "$from" "$to" >/dev/tty
+  read -r reply </dev/tty || reply=""
+  case "$reply" in
+    y | Y | yes | YES | Yes)
+      log_info "$phase" "Confirmed by user"
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 run_cmd() {
   local phase="$1"
   local desc="$2"
