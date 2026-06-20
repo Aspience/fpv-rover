@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 import type { ModulesConfig, OtaStatus } from '@/types/contracts'
 
-interface SystemState {
+export interface SystemState {
   modules: ModulesConfig
   wsConnected: boolean
   videoConnected: boolean

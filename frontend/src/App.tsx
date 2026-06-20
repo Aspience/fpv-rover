@@ -4,13 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { useConfigQuery } from '@/api/queries'
 import { wsClient } from '@/api/websocket'
 import { Dashboard, EventLog, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
-import { useConnectionLostLog, useGamepad, useKeyboard } from '@/hooks'
+import { useConnectionLostLog, useGamepad, useKeyboard, useStartupLog } from '@/hooks'
 
 import './App.css'
 
 const App = () => {
   useGamepad()
   useKeyboard()
+  useStartupLog()
   useConnectionLostLog()
   useConfigQuery()
   const { i18n } = useTranslation()

@@ -62,16 +62,10 @@ export const SetBrightnessCommandSchema = z.object({
   level: z.number().int().min(0).max(100),
 })
 
-export const RecordCommandSchema = z.object({
-  cmd: z.literal('record'),
-  state: z.enum(['start', 'stop']),
-})
-
 export const ClientCommandSchema = z.discriminatedUnion('cmd', [
   HeartbeatCommandSchema,
   MoveCommandSchema,
   SetBrightnessCommandSchema,
-  RecordCommandSchema,
 ])
 
 export const ConfigResponseSchema = z.object({

@@ -9,7 +9,7 @@ import {
 } from '@/i18n'
 
 import { OTAUpdater } from '@/components/common/OTAUpdater'
-import { Modal } from '@/components/ui'
+import { Button, Modal } from '@/components/ui'
 
 export const Settings = () => {
   const { t } = useTranslation()
@@ -23,16 +23,15 @@ export const Settings = () => {
 
   return (
     <>
-      {!open ? (
-        <button
-          type="button"
-          className="absolute top-4 right-4 z-dashboard rounded-lg border border-osd-primary/30 bg-osd-panel p-2 text-osd-primary backdrop-blur-sm transition-colors hover:border-osd-primary/50 hover:text-white"
-          onClick={() => setOpen(true)}
-          aria-label={t('settingsOpen')}
-        >
-          <SettingsIcon className="size-5" aria-hidden="true" />
-        </button>
-      ) : null}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-4 z-dashboard backdrop-blur-sm"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label={open ? t('settingsClose') : t('settingsOpen')}
+      >
+        <SettingsIcon className="size-5" aria-hidden="true" />
+      </Button>
 
       <Modal
         open={open}

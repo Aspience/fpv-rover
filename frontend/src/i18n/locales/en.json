@@ -1,9 +1,9 @@
 {
+  "loading": "Loading…",
+  "ready": "All ready",
   "connectionLost": "Connection lost",
   "cameraDisabled": "Camera module disabled",
   "light": "Light",
-  "record": "Record",
-  "stopRec": "Stop recording",
   "settings": "Settings",
   "settingsOpen": "Open settings",
   "settingsClose": "Close settings",

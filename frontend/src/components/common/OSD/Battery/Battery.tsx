@@ -1,14 +1,9 @@
 import { Badge } from '@/components/ui'
 import { useTelemetryStore } from '@/store/telemetryStore'
 import { useSystemStore } from '@/store/systemStore'
+import { batteryTone } from '@/utils'
 
 import './Battery.css'
-
-const batteryTone = (voltage: number): 'primary' | 'warning' | 'danger' => {
-  if (voltage >= 7.2) return 'primary'
-  if (voltage >= 6.5) return 'warning'
-  return 'danger'
-}
 
 export const Battery = () => {
   const powerEnabled = useSystemStore((s) => s.modules.power)

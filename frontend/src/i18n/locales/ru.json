@@ -1,9 +1,9 @@
 {
+  "loading": "Загрузка…",
+  "ready": "Всё готово",
   "connectionLost": "Связь потеряна",
   "cameraDisabled": "Модуль камеры отключён",
   "light": "Свет",
-  "record": "Запись",
-  "stopRec": "Остановить запись",
   "settings": "Настройки",
   "settingsOpen": "Открыть настройки",
   "settingsClose": "Закрыть настройки",
