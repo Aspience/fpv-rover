@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -16,7 +17,7 @@ interface EventLogProps {
 }
 
 const LogLine = ({ entry, locale }: { entry: LogEntry; locale: string }) => (
-  <li className={`leading-snug ${toneClass[entry.tone]}`}>
+  <li className={clsx('leading-snug', toneClass[entry.tone])}>
     <span className="text-osd-muted/70">{formatTimestamp(entry.timestamp, locale)}</span>{' '}
     {entry.message}
   </li>
@@ -35,7 +36,10 @@ export const EventLog = ({ className = '' }: EventLogProps) => {
 
   return (
     <aside
-      className={`absolute top-4 left-4 z-dashboard w-[200px] h-[150px] overflow-hidden rounded-lg border border-osd-primary/30 bg-osd-panel backdrop-blur-sm ${className}`.trim()}
+      className={clsx(
+        'w-[200px] h-[150px] overflow-hidden rounded-lg border border-osd-primary/30 bg-osd-panel backdrop-blur-sm',
+        className,
+      )}
       aria-live="polite"
       aria-label="Event log"
     >

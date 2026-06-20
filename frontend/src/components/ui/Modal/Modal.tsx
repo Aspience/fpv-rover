@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -28,14 +29,20 @@ export const Modal = ({
 
   return (
     <div
-      className={`mx-auto w-[468px] max-w-full fixed inset-0 z-modal flex items-center justify-center ${className}`.trim()}
+      className={clsx(
+        'mx-auto w-[468px] max-w-full fixed inset-0 z-modal flex items-center justify-center',
+        className,
+      )}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       {hasHeader ? (
         <section
-          className={`rounded-lg border border-osd-primary/30 bg-osd-panel p-3 px-4 backdrop-blur-sm ${panelClassName}`.trim()}
+          className={clsx(
+            'rounded-lg m-3 border border-osd-primary/30 bg-osd-panel p-3 px-4 backdrop-blur-sm',
+            panelClassName,
+          )}
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             {title ? (
