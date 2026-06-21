@@ -1,9 +1,24 @@
 @import "tailwindcss";
 
+@layer base {
+  html,
+  body,
+  #root {
+    @apply m-0 h-full w-full overflow-hidden bg-black font-osd text-white;
+  }
+
+  *,
+  ::after,
+  ::before {
+    @apply box-border;
+  }
+}
+
 @theme {
   --z-index-video: 0;
   --z-index-osd: 10;
   --z-index-dashboard: 20;
+  --z-index-event-log: 20;
   --z-index-alert: 50;
   --z-index-modal: 100;
 

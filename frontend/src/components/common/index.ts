@@ -1,4 +1,4 @@
-export { Dashboard } from './Dashboard'
+export { Light } from './Light'
 export { EventLog } from './EventLog'
 export { OTAUpdater, OtaUpdatingOverlay } from './OTAUpdater'
 export { Settings } from './Settings'

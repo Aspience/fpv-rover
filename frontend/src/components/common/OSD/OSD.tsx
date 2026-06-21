@@ -10,10 +10,10 @@ interface OSDProps {
 export const OSD = ({ className = '' }: OSDProps) => {
   return (
     <div className={className}>
-      <Crosshair />
-      <Horizon />
-      <Battery />
-      <ThermalBadges />
+      <Crosshair className="absolute inset-0" />
+      <Horizon className="absolute inset-0" />
+      <Battery className="absolute top-4 left-4" />
+      <ThermalBadges className="absolute top-4 right-4" />
     </div>
   )
 }

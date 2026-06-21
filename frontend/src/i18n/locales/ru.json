@@ -7,6 +7,8 @@
   "settings": "Настройки",
   "settingsOpen": "Открыть настройки",
   "settingsClose": "Закрыть настройки",
+  "eventLogOpen": "Открыть журнал событий",
+  "eventLogClose": "Закрыть журнал событий",
   "language": "Язык",
   "languageSystem": "Как в системе",
   "languageEn": "English",
