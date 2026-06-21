@@ -80,14 +80,21 @@ export const useConfigQuery = (): void => {
 
 
 
-export const useHealthQuery = () =>
+const HEALTH_POLL_MS = 3000
 
+export const useAppBootstrapQuery = () =>
   useQuery({
-
     queryKey: roverKeys.health(),
-
     queryFn: pingHealth,
+    retry: false,
+    refetchInterval: (query) =>
+      query.state.status === 'success' ? false : HEALTH_POLL_MS,
+  })
 
+export const useHealthQuery = () =>
+  useQuery({
+    queryKey: roverKeys.health(),
+    queryFn: pingHealth,
   })
 
 

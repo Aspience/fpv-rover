@@ -10,6 +10,7 @@ export {
   queryClient,
   roverKeys,
   useConfigQuery,
+  useAppBootstrapQuery,
   useHealthQuery,
   useCheckUpdateMutation,
   useApplyUpdateMutation,
