@@ -7,6 +7,7 @@ import { wsClient } from '@/api/websocket'
 import { AppLoader, EventLog, Light, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
 import { Button } from '@/components/ui'
 import { useConnectionLostLog, useGamepad, useKeyboard, useOtaUpdater, useStartupLog, useUpdateCheckLog } from '@/hooks'
+import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
 
 const App = () => {
@@ -22,6 +23,7 @@ const App = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [eventLogOpen, setEventLogOpen] = useState(false)
   const lightEnabled = useSystemStore((s) => s.modules.light)
+  const hasUnread = useLogStore((s) => s.entries.some((e) => e.timestamp > s.lastReadAt))
 
   useEffect(() => {
     document.documentElement.lang = i18n.language
@@ -44,8 +46,11 @@ const App = () => {
       <Button
         variant="ghost"
         size="icon"
+        badge={hasUnread && !eventLogOpen}
         className="absolute top-3 left-3 z-dashboard backdrop-blur-sm"
-        onClick={() => setEventLogOpen((prev) => !prev)}
+        onClick={() => {
+          setEventLogOpen(!eventLogOpen);
+        }}
         aria-label={eventLogOpen ? t('eventLogClose') : t('eventLogOpen')}
       >
         <ScrollText className="size-5" aria-hidden="true" />

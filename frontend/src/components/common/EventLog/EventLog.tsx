@@ -25,8 +25,13 @@ const LogLine = ({ entry, locale }: { entry: LogEntry; locale: string }) => (
 
 export const EventLog = ({ className = '' }: EventLogProps) => {
   const entries = useLogStore((state) => state.entries)
+  const markAsRead = useLogStore((state) => state.markAsRead)
   const { i18n } = useTranslation()
   const listRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    markAsRead()
+  }, [entries, markAsRead])
 
   useEffect(() => {
     const list = listRef.current
