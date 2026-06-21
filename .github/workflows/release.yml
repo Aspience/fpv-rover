@@ -164,5 +164,6 @@ jobs:
             infra/**/*
             scripts/ota_update.sh
             scripts/bootstrap.sh
+            scripts/teardown.sh
             scripts/lib/common.sh
             .env.example
