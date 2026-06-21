@@ -37,7 +37,7 @@ export const EventLog = ({ className = '' }: EventLogProps) => {
   return (
     <aside
       className={clsx(
-        'w-[200px] h-[150px] overflow-hidden rounded-lg border border-osd-primary/30 bg-osd-panel backdrop-blur-sm',
+        'w-[256px] h-[128px] overflow-hidden rounded-lg border border-osd-primary/30 bg-osd-panel backdrop-blur-sm',
         className,
       )}
       aria-live="polite"

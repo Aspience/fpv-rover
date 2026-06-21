@@ -31,6 +31,11 @@ trap 'on_error $LINENO $?' ERR
 
 cd "$INSTALL_DIR"
 
+# Clear the health-endpoint "updating" marker on exit (success, error, or cancel).
+OTA_MARKER="${INSTALL_DIR}/.ota_updating"
+cleanup_ota_marker() { rm -f "$OTA_MARKER" 2>/dev/null || true; }
+trap cleanup_ota_marker EXIT
+
 phase_start grace_period
 log_info grace_period "Waiting 3s so API can respond before restart"
 sleep 3

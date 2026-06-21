@@ -78,8 +78,11 @@ def test_apply_update_starts_script(
     with (
         patch("api.update.httpx.AsyncClient", return_value=mock_client),
         patch("api.update.subprocess.Popen") as popen_mock,
+        patch("api.update.mark_update_started") as mark_mock,
     ):
         response = client.post("/update/apply")
+
+    mark_mock.assert_called_once_with("/opt/fpv-rover", "v1.0.0")
 
     assert response.status_code == 200
     assert response.json() == {"status": "updating"}

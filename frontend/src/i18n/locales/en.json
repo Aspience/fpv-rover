@@ -23,6 +23,9 @@
   "otaUpdateSuccess": "Update installed successfully",
   "otaUpToDate": "Latest version installed",
   "otaUpdateAvailableLog": "New version available",
+  "otaUpdateStarted": "Update started…",
+  "otaUpdateInProgress": "Update in progress…",
+  "otaUpdateFailedLog": "Update failed or timed out",
   "otaRetry": "Retry",
   "thermal": {
     "motor_steering": "Steering",

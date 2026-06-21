@@ -11,6 +11,7 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from core.config import get_settings
+from core.ota_state import mark_update_started
 from core.schemas.update import UpdateApplyResponse, UpdateCheckResponse
 from core.version import get_current_version, normalize_tag
 
@@ -102,5 +103,6 @@ async def apply_update(background_tasks: BackgroundTasks) -> UpdateApplyResponse
             detail="Could not determine latest release tag",
         )
 
+    mark_update_started(settings.ota_install_dir, latest)
     background_tasks.add_task(_run_ota_script, latest)
     return UpdateApplyResponse(status="updating")

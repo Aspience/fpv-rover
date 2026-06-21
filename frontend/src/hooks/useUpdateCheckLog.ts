@@ -6,7 +6,7 @@ import { useLogStore } from '@/store/logStore'
 import { formatVersion } from '@/utils'
 
 const UPDATE_AVAILABLE_LOG_ID = 'update-available'
-const CHECK_INTERVAL_MS = 5 * 60 * 1000
+const CHECK_INTERVAL_MS = 60 * 60 * 1000
 
 export const useUpdateCheckLog = () => {
   const { t } = useTranslation()
