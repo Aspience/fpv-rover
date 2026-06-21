@@ -12,7 +12,11 @@ import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
 import { formatVersion } from '@/utils'
 
-export const OTAUpdater = () => {
+interface OTAUpdaterProps {
+  onInstallStart?: () => void
+}
+
+export const OTAUpdater = ({ onInstallStart }: OTAUpdaterProps) => {
   const { t } = useTranslation()
   const otaStatus = useSystemStore((s) => s.otaStatus)
   const setOtaStatus = useSystemStore((s) => s.setOtaStatus)
@@ -50,6 +54,7 @@ export const OTAUpdater = () => {
   }
 
   const handleApply = () => {
+    onInstallStart?.()
     setOtaError(null)
     applyMutation.mutate(undefined, {
       onSuccess: () => {
