@@ -44,6 +44,23 @@ def clear_update_marker(install_dir: str) -> None:
         logger.exception("Failed to remove OTA update marker")
 
 
+def complete_update_on_startup(install_dir: str) -> None:
+    """Clear a leftover update marker when the backend (re)starts.
+
+    A freshly started backend process means its container was just recreated,
+    which is the most reliable signal that the OTA container swap finished. We
+    cannot rely on the OTA script's own cleanup: it runs inside the backend
+    container and ``docker compose up`` kills it along with that container
+    before its exit trap can fire. Nor can we rely on a tag comparison: the
+    marker stores the release tag, but a release may not rebuild the backend,
+    so the backend image tag can legitimately lag behind and never match.
+    """
+    path = _marker_path(install_dir)
+    if path.exists():
+        logger.info("Clearing leftover OTA update marker on startup: %s", path)
+        clear_update_marker(install_dir)
+
+
 def is_update_in_progress(install_dir: str) -> bool:
     """Return ``True`` while an OTA update is still in flight."""
     path = _marker_path(install_dir)

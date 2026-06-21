@@ -77,6 +77,8 @@ def test_apply_update_starts_script(
 
     with (
         patch("api.update.httpx.AsyncClient", return_value=mock_client),
+        patch("api.update._resolve_helper_image", return_value="ghcr.io/acme/fpv-rover-backend:v1.0.0"),
+        patch("api.update.subprocess.run") as run_mock,
         patch("api.update.subprocess.Popen") as popen_mock,
         patch("api.update.mark_update_started") as mark_mock,
     ):
@@ -86,10 +88,19 @@ def test_apply_update_starts_script(
 
     assert response.status_code == 200
     assert response.json() == {"status": "updating"}
+
+    # Stale helper is force-removed before the new one is launched.
+    run_mock.assert_called_once()
+    assert run_mock.call_args.args[0] == ["docker", "rm", "-f", "fpv-rover-ota"]
+
+    # The update runs in a detached sibling container, not inside the backend.
     popen_mock.assert_called_once()
-    call_kwargs = popen_mock.call_args.kwargs
-    assert call_kwargs["args"] == ["/opt/fpv-rover/scripts/ota_update.sh", "v1.0.0"]
-    assert call_kwargs["cwd"] == "/opt/fpv-rover"
-    assert call_kwargs["env"]["IMAGE_TAG"] == "v1.0.0"
-    assert call_kwargs["env"]["ROVER_OTA_INSTALL_DIR"] == "/opt/fpv-rover"
-    assert "/root/.ssh/id_ed25519" in call_kwargs["env"]["GIT_SSH_COMMAND"]
+    cmd = popen_mock.call_args.args[0]
+    assert cmd[:4] == ["docker", "run", "--detach", "--rm"]
+    assert "ghcr.io/acme/fpv-rover-backend:v1.0.0" in cmd
+    assert cmd[-4:] == ["bash", "/opt/fpv-rover/scripts/ota_update.sh", "v1.0.0", "-y"]
+    assert "/var/run/docker.sock:/var/run/docker.sock" in cmd
+    assert "/opt/fpv-rover:/opt/fpv-rover" in cmd
+    assert "IMAGE_TAG=v1.0.0" in cmd
+    assert "ROVER_OTA_INSTALL_DIR=/opt/fpv-rover" in cmd
+    assert popen_mock.call_args.kwargs["start_new_session"] is True
