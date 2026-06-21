@@ -13,6 +13,7 @@ from api.router import create_app
 from api.websocket import get_hub, reset_hub
 from core.config import get_settings
 from core.event_bus import EventBus
+from core.ota_state import complete_update_on_startup
 from core.registry import ModuleRegistry
 
 if TYPE_CHECKING:
@@ -32,6 +33,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     hub = get_hub(event_bus)
 
     logger.info("Starting FPV Rover backend")
+    complete_update_on_startup(settings.ota_install_dir)
     await hub.start()
     await registry.start_enabled()
 
