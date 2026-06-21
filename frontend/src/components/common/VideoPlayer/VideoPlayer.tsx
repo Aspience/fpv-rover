@@ -5,8 +5,6 @@ import { useTranslation } from 'react-i18next'
 import { connectWhep } from '@/api/webrtc'
 import { useSystemStore } from '@/store/systemStore'
 
-import './VideoPlayer.css'
-
 interface VideoPlayerProps {
   className?: string
 }
@@ -35,7 +33,12 @@ export const VideoPlayer = ({ className = '' }: VideoPlayerProps) => {
 
   if (!cameraEnabled) {
     return (
-      <div className={clsx('video-player__placeholder', className)}>
+      <div
+        className={clsx(
+          'flex items-center justify-center bg-black text-osd-muted',
+          className,
+        )}
+      >
         {t('cameraDisabled')}
       </div>
     )
@@ -47,7 +50,7 @@ export const VideoPlayer = ({ className = '' }: VideoPlayerProps) => {
       autoPlay
       playsInline
       muted
-      className={clsx('video-player', className)}
+      className={clsx('h-full w-full object-cover', className)}
     />
   )
 }

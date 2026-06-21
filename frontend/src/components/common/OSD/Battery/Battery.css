@@ -1,8 +1,0 @@
-.battery {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}

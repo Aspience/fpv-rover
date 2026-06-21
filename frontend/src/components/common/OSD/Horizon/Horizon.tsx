@@ -1,9 +1,13 @@
+import { clsx } from 'clsx'
+
 import { useTelemetryStore } from '@/store/telemetryStore'
 import { useSystemStore } from '@/store/systemStore'
 
-import './Horizon.css'
+interface HorizonProps {
+  className?: string
+}
 
-export const Horizon = () => {
+export const Horizon = ({ className = '' }: HorizonProps) => {
   const imuEnabled = useSystemStore((s) => s.modules.imu)
   const pitch = useTelemetryStore((s) => s.pitch)
   const roll = useTelemetryStore((s) => s.roll)
@@ -11,10 +15,10 @@ export const Horizon = () => {
   if (!imuEnabled) return null
 
   return (
-    <div className="horizon">
+    <div className={clsx('pointer-events-none flex items-center justify-center', className)}>
       <svg
         viewBox="0 0 200 200"
-        className="horizon__svg"
+        className="size-48 text-osd-primary"
         style={{ transform: `rotate(${roll}deg)` }}
         aria-hidden
       >
@@ -25,7 +29,7 @@ export const Horizon = () => {
           <circle cx="100" cy="100" r="56" fill="none" stroke="currentColor" strokeOpacity="0.35" />
         </g>
       </svg>
-      <div className="horizon__readout">
+      <div className="absolute bottom-1/2 mb-24 text-osd-xs text-osd-muted">
         P {pitch.toFixed(1)}° R {roll.toFixed(1)}°
       </div>
     </div>

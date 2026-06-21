@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Settings as SettingsIcon } from 'lucide-react'
+import { ScrollText, Settings as SettingsIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { useConfigQuery } from '@/api/queries'
 import { wsClient } from '@/api/websocket'
-import { Dashboard, EventLog, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
+import { EventLog, Light, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
 import { Button } from '@/components/ui'
 import { useConnectionLostLog, useGamepad, useKeyboard, useOtaUpdater, useStartupLog, useUpdateCheckLog } from '@/hooks'
-
-import './App.css'
+import { useSystemStore } from '@/store/systemStore'
 
 const App = () => {
   useGamepad()
@@ -20,6 +19,8 @@ const App = () => {
   useConfigQuery()
   const { t, i18n } = useTranslation()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [eventLogOpen, setEventLogOpen] = useState(false)
+  const lightEnabled = useSystemStore((s) => s.modules.light)
 
   useEffect(() => {
     document.documentElement.lang = i18n.language
@@ -31,10 +32,19 @@ const App = () => {
   }, [])
 
   return (
-    <main className="app">
+    <main className="relative h-full w-full overflow-hidden bg-black">
       <VideoPlayer className="absolute inset-0 z-video" />
       <OSD className="pointer-events-none absolute inset-0 z-osd" />
-      <EventLog className="absolute top-3 left-4 z-dashboard" />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-3 left-3 z-dashboard backdrop-blur-sm"
+        onClick={() => setEventLogOpen((prev) => !prev)}
+        aria-label={eventLogOpen ? t('eventLogClose') : t('eventLogOpen')}
+      >
+        <ScrollText className="size-5" aria-hidden="true" />
+      </Button>
+      {eventLogOpen && <EventLog className="absolute top-14 left-3 z-event-log" />}
       <Button
         variant="ghost"
         size="icon"
@@ -45,7 +55,9 @@ const App = () => {
         <SettingsIcon className="size-5" aria-hidden="true" />
       </Button>
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <Dashboard className="absolute bottom-4 left-1/2 z-dashboard -translate-x-1/2" />
+      {lightEnabled && (
+        <Light className="absolute bottom-4 left-1/2 z-dashboard -translate-x-1/2" />
+      )}
       <OtaUpdatingOverlay />
     </main>
   )
