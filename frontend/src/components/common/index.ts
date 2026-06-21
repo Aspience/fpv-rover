@@ -1,3 +1,4 @@
+export { AppLoader } from './AppLoader'
 export { Light } from './Light'
 export { EventLog } from './EventLog'
 export { OTAUpdater, OtaUpdatingOverlay } from './OTAUpdater'
