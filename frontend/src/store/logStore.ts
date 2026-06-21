@@ -20,13 +20,16 @@ interface AppendLogInput {
 
 interface LogState {
   entries: LogEntry[]
+  lastReadAt: number
   appendLog: (entry: AppendLogInput) => void
   removeLog: (id: string) => void
   clearLogs: () => void
+  markAsRead: () => void
 }
 
 export const useLogStore = create<LogState>((set) => ({
   entries: [],
+  lastReadAt: 0,
   appendLog: ({ id, message, tone = 'default', skipIfExists = false }) =>
     set((state) => {
       const entryId = id ?? createLogId()
@@ -53,5 +56,6 @@ export const useLogStore = create<LogState>((set) => ({
     set((state) => ({
       entries: state.entries.filter((entry) => entry.id !== id),
     })),
-  clearLogs: () => set({ entries: [] }),
+  clearLogs: () => set({ entries: [], lastReadAt: 0 }),
+  markAsRead: () => set({ lastReadAt: Date.now() }),
 }))

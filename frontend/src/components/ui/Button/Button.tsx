@@ -7,6 +7,7 @@ type ButtonSize = 'md' | 'icon' | 'icon-sm'
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
+  badge?: boolean
 }
 
 const variantClass: Record<ButtonVariant, string> = {
@@ -25,7 +26,9 @@ const sizeClass: Record<ButtonSize, string> = {
 export const Button = ({
   variant = 'primary',
   size = 'md',
+  badge = false,
   className = '',
+  children,
   ...props
 }: ButtonProps) => {
   const classes = clsx(
@@ -35,5 +38,21 @@ export const Button = ({
     className,
   )
 
-  return <button type="button" className={classes} {...props} />
+  const content = badge ? (
+    <span className="relative inline-flex">
+      {children}
+      <span
+        className="pointer-events-none absolute -top-2.5 -right-2.5 size-2.5 rounded-full bg-osd-danger ring-2 ring-black/40"
+        aria-hidden="true"
+      />
+    </span>
+  ) : (
+    children
+  )
+
+  return (
+    <button type="button" className={classes} {...props}>
+      {content}
+    </button>
+  )
 }
