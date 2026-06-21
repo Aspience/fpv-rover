@@ -23,6 +23,9 @@
   "otaUpdateSuccess": "Обновление успешно установлено",
   "otaUpToDate": "Установлена последняя версия",
   "otaUpdateAvailableLog": "Доступна новая версия",
+  "otaUpdateStarted": "Началось обновление…",
+  "otaUpdateInProgress": "Обновление в процессе…",
+  "otaUpdateFailedLog": "Обновление не удалось или истекло время ожидания",
   "otaRetry": "Повторить",
   "thermal": {
     "motor_steering": "Рулевой",

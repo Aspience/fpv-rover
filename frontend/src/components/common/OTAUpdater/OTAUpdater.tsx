@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
   useApplyUpdateMutation,
   useCheckUpdateMutation,
   useHealthQuery,
-  useOtaRecovery,
 } from '@/api/queries'
 import { Badge, Button } from '@/components/ui'
+import { markOtaUpdating } from '@/hooks'
 import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
 import { formatVersion } from '@/utils'
@@ -16,45 +16,14 @@ export const OTAUpdater = () => {
   const { t } = useTranslation()
   const otaStatus = useSystemStore((s) => s.otaStatus)
   const setOtaStatus = useSystemStore((s) => s.setOtaStatus)
-  const resetOtaStatus = useSystemStore((s) => s.resetOtaStatus)
 
   const [otaError, setOtaError] = useState<string | null>(null)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
-  const [recoverySession, setRecoverySession] = useState(0)
 
   const { data: health } = useHealthQuery()
   const appendLog = useLogStore((s) => s.appendLog)
   const checkMutation = useCheckUpdateMutation()
   const applyMutation = useApplyUpdateMutation()
-
-  const isRecovering = otaStatus === 'updating' && applyMutation.isSuccess
-
-  const handleRecoverySuccess = useCallback(() => {
-    setOtaStatus('success')
-  }, [setOtaStatus])
-
-  const handleRecoveryError = useCallback(
-    (message: string) => {
-      setOtaError(message)
-      setOtaStatus('error')
-    },
-    [setOtaStatus],
-  )
-
-  useOtaRecovery(isRecovering, recoverySession, {
-    onSuccess: handleRecoverySuccess,
-    onError: handleRecoveryError,
-  })
-
-  useEffect(() => {
-    if (otaStatus !== 'success') return
-    const timer = window.setTimeout(() => {
-      resetOtaStatus()
-      applyMutation.reset()
-      checkMutation.reset()
-    }, 5000)
-    return () => window.clearTimeout(timer)
-  }, [otaStatus, resetOtaStatus, applyMutation, checkMutation])
 
   const handleCheck = () => {
     setOtaError(null)
@@ -82,9 +51,13 @@ export const OTAUpdater = () => {
 
   const handleApply = () => {
     setOtaError(null)
-    setOtaStatus('updating')
     applyMutation.mutate(undefined, {
-      onSuccess: () => setRecoverySession((session) => session + 1),
+      onSuccess: () => {
+        // The update flow (logging, polling /health, reload) is driven by
+        // useOtaUpdater once the status flips to 'updating'.
+        markOtaUpdating()
+        setOtaStatus('updating')
+      },
       onError: (error) => {
         setOtaError(error instanceof Error ? error.message : 'Update apply failed')
         setOtaStatus('error')
@@ -92,7 +65,8 @@ export const OTAUpdater = () => {
     })
   }
 
-  const isBusy = otaStatus === 'checking' || otaStatus === 'updating'
+  const isBusy =
+    otaStatus === 'checking' || otaStatus === 'updating' || applyMutation.isPending
   const services = health?.services
 
   return (

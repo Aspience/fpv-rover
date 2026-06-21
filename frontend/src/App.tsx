@@ -6,7 +6,7 @@ import { useConfigQuery } from '@/api/queries'
 import { wsClient } from '@/api/websocket'
 import { Dashboard, EventLog, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
 import { Button } from '@/components/ui'
-import { useConnectionLostLog, useGamepad, useKeyboard, useStartupLog, useUpdateCheckLog } from '@/hooks'
+import { useConnectionLostLog, useGamepad, useKeyboard, useOtaUpdater, useStartupLog, useUpdateCheckLog } from '@/hooks'
 
 import './App.css'
 
@@ -16,6 +16,7 @@ const App = () => {
   useStartupLog()
   useConnectionLostLog()
   useUpdateCheckLog()
+  useOtaUpdater()
   useConfigQuery()
   const { t, i18n } = useTranslation()
   const [settingsOpen, setSettingsOpen] = useState(false)

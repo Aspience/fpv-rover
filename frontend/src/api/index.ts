@@ -13,7 +13,6 @@ export {
   useHealthQuery,
   useCheckUpdateMutation,
   useApplyUpdateMutation,
-  useOtaRecovery,
 } from './queries'
 export { wsClient, sendMove, sendBrightness } from './websocket'
 export { connectWhep } from './webrtc'

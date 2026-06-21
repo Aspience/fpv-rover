@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -26,6 +28,18 @@ def test_get_health_returns_ok() -> None:
         "frontend": data["version"],
         "mediamtx": data["version"],
     }
+
+
+def test_get_health_reports_updating_during_ota() -> None:
+    app = create_app()
+    app.state.event_bus = EventBus()
+    client = TestClient(app)
+
+    with patch("api.health.is_update_in_progress", return_value=True):
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "updating"
 
 
 def test_get_health_returns_per_service_tags(
