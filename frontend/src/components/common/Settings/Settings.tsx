@@ -50,7 +50,7 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
           </select>
         </div>
 
-        <OTAUpdater />
+        <OTAUpdater onInstallStart={onClose} />
     </Modal>
   )
 }
