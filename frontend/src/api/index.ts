@@ -4,6 +4,7 @@ export {
   pingHealth,
   checkUpdate,
   applyUpdate,
+  setCameraStreamConfig,
   postWhepOffer,
 } from './http'
 export {
@@ -14,6 +15,7 @@ export {
   useHealthQuery,
   useCheckUpdateMutation,
   useApplyUpdateMutation,
+  useSetCameraStreamConfigMutation,
 } from './queries'
 export { wsClient, sendMove, sendBrightness } from './websocket'
 export { connectWhep } from './webrtc'

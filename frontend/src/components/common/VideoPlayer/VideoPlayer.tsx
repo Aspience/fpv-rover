@@ -13,6 +13,7 @@ export const VideoPlayer = ({ className = '' }: VideoPlayerProps) => {
   const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement>(null)
   const cameraEnabled = useSystemStore((s) => s.modules.camera)
+  const videoNonce = useSystemStore((s) => s.videoNonce)
 
   useEffect(() => {
     if (!cameraEnabled || !videoRef.current) return
@@ -29,7 +30,7 @@ export const VideoPlayer = ({ className = '' }: VideoPlayerProps) => {
     return () => {
       cleanup?.()
     }
-  }, [cameraEnabled])
+  }, [cameraEnabled, videoNonce])
 
   if (!cameraEnabled) {
     return (

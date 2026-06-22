@@ -10,6 +10,8 @@
   "eventLogOpen": "Open event log",
   "eventLogClose": "Close event log",
   "language": "Language",
+  "cameraResolution": "Resolution",
+  "cameraBitrate": "Bitrate",
   "languageSystem": "System default",
   "languageEn": "English",
   "languageRu": "Russian",

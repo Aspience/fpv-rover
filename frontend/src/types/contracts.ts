@@ -33,6 +33,16 @@ export interface UpdateApplyResponse {
   status: string
 }
 
+export interface CameraStreamConfig {
+  width: number
+  height: number
+  bitrate: number
+}
+
+export interface CameraStreamConfigResponse {
+  status: string
+}
+
 export type OtaStatus =
   | 'idle'
   | 'checking'

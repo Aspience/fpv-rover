@@ -1,11 +1,14 @@
 import { apiClient, whepClient } from '@/api/client'
 import type {
+  CameraStreamConfig,
+  CameraStreamConfigResponse,
   ConfigResponse,
   HealthResponse,
   UpdateApplyResponse,
   UpdateCheckResponse,
 } from '@/types/contracts'
 import {
+  CameraStreamConfigResponseSchema,
   ConfigResponseSchema,
   HealthResponseSchema,
   UpdateApplyResponseSchema,
@@ -51,6 +54,19 @@ export const applyUpdate = async (): Promise<UpdateApplyResponse> => {
   const parsed = UpdateApplyResponseSchema.safeParse(data)
   if (!parsed.success) {
     throw new Error(`Invalid update apply response: ${parsed.error.message}`)
+  }
+
+  return parsed.data
+}
+
+export const setCameraStreamConfig = async (
+  payload: CameraStreamConfig,
+): Promise<CameraStreamConfigResponse> => {
+  const { data } = await apiClient.post<unknown>('/camera/stream/config', payload)
+
+  const parsed = CameraStreamConfigResponseSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(`Invalid camera stream config response: ${parsed.error.message}`)
   }
 
   return parsed.data
