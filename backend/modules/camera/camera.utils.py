@@ -38,6 +38,30 @@ async def mediamtx_stop_record(
             raise OSError(f"MediaMTX record stop failed: {resp.status} {text}")
 
 
+async def mediamtx_set_stream_config(
+    api_url: str,
+    patch_path: str,
+    stream_path: str,
+    width: int,
+    height: int,
+    bitrate: int,
+) -> None:
+    path = patch_path.format(stream_path=stream_path)
+    url = f"{api_url.rstrip('/')}{path}"
+    payload = {
+        "rpiCameraWidth": width,
+        "rpiCameraHeight": height,
+        "rpiCameraBitrate": bitrate,
+    }
+    async with (
+        aiohttp.ClientSession() as session,
+        session.patch(url, json=payload) as resp,
+    ):
+        if resp.status >= 400:
+            text = await resp.text()
+            raise OSError(f"MediaMTX stream config failed: {resp.status} {text}")
+
+
 async def set_night_mode(
     enabled: bool,
     v4l2_device: str,

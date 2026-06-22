@@ -100,3 +100,7 @@ export const UpdateCheckResponseSchema = z.object({
 export const UpdateApplyResponseSchema = z.object({
   status: z.string(),
 })
+
+export const CameraStreamConfigResponseSchema = z.object({
+  status: z.string(),
+})

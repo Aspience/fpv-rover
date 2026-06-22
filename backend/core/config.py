@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     mediamtx_api_url: str
     mediamtx_record_start_path: str
     mediamtx_record_stop_path: str
+    mediamtx_stream_config_path: str
 
     power_i2c_address: HexInt
     imu_i2c_address: HexInt

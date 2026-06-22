@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from api.camera import router as camera_router
 from api.config import router as config_router
 from api.health import router as health_router
 from api.protocol import router as protocol_router
@@ -43,6 +44,7 @@ def create_app(
             {"name": "config", "description": "Module feature flags"},
             {"name": "health", "description": "Service liveness"},
             {"name": "update", "description": "OTA update check and apply"},
+            {"name": "camera", "description": "Camera stream configuration"},
             {"name": "websocket", "description": WS_DESCRIPTION},
         ],
         lifespan=lifespan,
@@ -50,6 +52,7 @@ def create_app(
     app.include_router(config_router)
     app.include_router(health_router)
     app.include_router(update_router)
+    app.include_router(camera_router)
     app.include_router(protocol_router)
     app.include_router(websocket_router)
     return app

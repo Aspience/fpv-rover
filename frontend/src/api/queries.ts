@@ -12,7 +12,13 @@ import { useEffect } from 'react'
 
 
 
-import { applyUpdate, checkUpdate, fetchConfig, pingHealth } from '@/api/http'
+import {
+  applyUpdate,
+  checkUpdate,
+  fetchConfig,
+  pingHealth,
+  setCameraStreamConfig,
+} from '@/api/http'
 
 import { useSystemStore } from '@/store/systemStore'
 
@@ -114,5 +120,15 @@ export const useApplyUpdateMutation = () =>
   useMutation({
 
     mutationFn: applyUpdate,
+
+  })
+
+
+
+export const useSetCameraStreamConfigMutation = () =>
+
+  useMutation({
+
+    mutationFn: setCameraStreamConfig,
 
   })

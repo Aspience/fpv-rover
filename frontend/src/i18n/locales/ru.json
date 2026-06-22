@@ -10,6 +10,8 @@
   "eventLogOpen": "Открыть журнал событий",
   "eventLogClose": "Закрыть журнал событий",
   "language": "Язык",
+  "cameraResolution": "Разрешение",
+  "cameraBitrate": "Битрейт",
   "languageSystem": "Как в системе",
   "languageEn": "English",
   "languageRu": "Русский",
