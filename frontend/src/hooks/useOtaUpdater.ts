@@ -2,18 +2,18 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { pingHealth } from '@/api/http'
+import {
+  LOG_IDS,
+  OTA_MAX_DURATION_MS,
+  OTA_POLL_INTERVAL_MS,
+  OTA_STORAGE_KEY,
+} from '@/constants'
 import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
 
-const STORAGE_KEY = 'fpv-rover.ota-updating'
-const POLL_INTERVAL_MS = 5000
-const MAX_DURATION_MS = 15 * 60 * 1000
-const START_LOG_ID = 'ota-update-start'
-const PROGRESS_LOG_ID = 'ota-update-progress'
-
 const isOtaUpdatingPersisted = (): boolean => {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === '1'
+    return window.localStorage.getItem(OTA_STORAGE_KEY) === '1'
   } catch {
     return false
   }
@@ -21,7 +21,7 @@ const isOtaUpdatingPersisted = (): boolean => {
 
 export const markOtaUpdating = (): void => {
   try {
-    window.localStorage.setItem(STORAGE_KEY, '1')
+    window.localStorage.setItem(OTA_STORAGE_KEY, '1')
   } catch {
     // Ignore storage failures (e.g. private mode); flow still works in-memory.
   }
@@ -29,7 +29,7 @@ export const markOtaUpdating = (): void => {
 
 const clearOtaUpdating = (): void => {
   try {
-    window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(OTA_STORAGE_KEY)
   } catch {
     // Ignore storage failures.
   }
@@ -57,14 +57,14 @@ export const useOtaUpdater = (): void => {
     if (otaStatus !== 'updating') return
 
     markOtaUpdating()
-    appendLog({ id: START_LOG_ID, message: t('otaUpdateStarted'), tone: 'primary' })
+    appendLog({ id: LOG_IDS.otaStart, message: t('otaUpdateStarted'), tone: 'primary' })
 
     const startedAt = Date.now()
     let stopped = false
     let timer = 0
 
     const logProgress = () => {
-      appendLog({ id: PROGRESS_LOG_ID, message: t('otaUpdateInProgress'), tone: 'primary' })
+      appendLog({ id: LOG_IDS.otaProgress, message: t('otaUpdateInProgress'), tone: 'primary' })
     }
 
     const stop = () => {
@@ -75,7 +75,7 @@ export const useOtaUpdater = (): void => {
     const poll = async () => {
       if (stopped) return
 
-      if (Date.now() - startedAt > MAX_DURATION_MS) {
+      if (Date.now() - startedAt > OTA_MAX_DURATION_MS) {
         stop()
         clearOtaUpdating()
         setOtaStatus('error')
@@ -101,7 +101,7 @@ export const useOtaUpdater = (): void => {
       }
     }
 
-    timer = window.setInterval(() => void poll(), POLL_INTERVAL_MS)
+    timer = window.setInterval(() => void poll(), OTA_POLL_INTERVAL_MS)
     void poll()
 
     return () => {

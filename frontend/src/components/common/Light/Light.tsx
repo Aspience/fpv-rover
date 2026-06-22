@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { sendBrightness } from '@/api/websocket'
 import { Slider } from '@/components/ui'
+import { BRIGHTNESS_MAX, BRIGHTNESS_MIN } from '@/constants'
 import { useControlStore } from '@/store/controlStore'
 
 interface LightProps {
@@ -28,8 +29,8 @@ export const Light = ({ className = '' }: LightProps) => {
           <Slider
             className="w-full"
             label={t('light')}
-            min={0}
-            max={100}
+            min={BRIGHTNESS_MIN}
+            max={BRIGHTNESS_MAX}
             value={brightness}
             onChange={(event) => {
               const level = Number(event.target.value)

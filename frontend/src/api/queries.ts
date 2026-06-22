@@ -21,6 +21,7 @@ import {
 } from '@/api/http'
 
 import { useSystemStore } from '@/store/systemStore'
+import { HEALTH_POLL_MS, QUERY_RETRY_COUNT } from '@/constants'
 
 
 
@@ -30,7 +31,7 @@ export const queryClient = new QueryClient({
 
     queries: {
 
-      retry: 1,
+      retry: QUERY_RETRY_COUNT,
 
     },
 
@@ -85,8 +86,6 @@ export const useConfigQuery = (): void => {
 }
 
 
-
-const HEALTH_POLL_MS = 3000
 
 export const useAppBootstrapQuery = () =>
   useQuery({

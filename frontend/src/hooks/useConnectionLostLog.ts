@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { LOG_IDS } from '@/constants'
 import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
-
-const CONNECTION_LOST_LOG_ID = 'connection-lost'
 
 export const useConnectionLostLog = () => {
   const { t } = useTranslation()
@@ -19,13 +18,13 @@ export const useConnectionLostLog = () => {
 
     if (wsConnected) {
       wasConnectedRef.current = true
-      removeLog(CONNECTION_LOST_LOG_ID)
+      removeLog(LOG_IDS.connectionLost)
       return
     }
 
     if (wasConnectedRef.current) {
       appendLog({
-        id: CONNECTION_LOST_LOG_ID,
+        id: LOG_IDS.connectionLost,
         message: t('connectionLost'),
         tone: 'danger',
       })

@@ -1,4 +1,5 @@
 import { apiClient, whepClient } from '@/api/client'
+import { WHEP_STREAM_PATH } from '@/constants'
 import type {
   CameraStreamConfig,
   CameraStreamConfigResponse,
@@ -73,6 +74,6 @@ export const setCameraStreamConfig = async (
 }
 
 export const postWhepOffer = async (sdp: string): Promise<string> => {
-  const { data } = await whepClient.post<string>('/rover/whep', sdp)
+  const { data } = await whepClient.post<string>(WHEP_STREAM_PATH, sdp)
   return data
 }

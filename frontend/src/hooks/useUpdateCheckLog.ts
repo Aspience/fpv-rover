@@ -2,11 +2,9 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { checkUpdate } from '@/api/http'
+import { LOG_IDS, UPDATE_CHECK_INTERVAL_MS } from '@/constants'
 import { useLogStore } from '@/store/logStore'
 import { formatVersion } from '@/utils'
-
-const UPDATE_AVAILABLE_LOG_ID = 'update-available'
-const CHECK_INTERVAL_MS = 60 * 60 * 1000
 
 export const useUpdateCheckLog = () => {
   const { t } = useTranslation()
@@ -20,7 +18,7 @@ export const useUpdateCheckLog = () => {
         const result = await checkUpdate()
         if (cancelled || !result.has_update || !result.latest) return
         appendLog({
-          id: UPDATE_AVAILABLE_LOG_ID,
+          id: LOG_IDS.updateAvailable,
           message: `${t('otaUpdateAvailableLog')}: ${formatVersion(result.latest)}`,
           tone: 'warning',
           skipIfExists: true,
@@ -31,7 +29,7 @@ export const useUpdateCheckLog = () => {
     }
 
     void run()
-    const timer = window.setInterval(() => void run(), CHECK_INTERVAL_MS)
+    const timer = window.setInterval(() => void run(), UPDATE_CHECK_INTERVAL_MS)
 
     return () => {
       cancelled = true

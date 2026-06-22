@@ -1,3 +1,4 @@
+import { BATTERY_OK_VOLTAGE, BATTERY_WARNING_VOLTAGE } from '@/constants'
 import type { ImuData } from '@/types/contracts'
 
 export const attitudeFromImu = (imu: ImuData): { pitch: number; roll: number } => {
@@ -7,7 +8,7 @@ export const attitudeFromImu = (imu: ImuData): { pitch: number; roll: number } =
 }
 
 export const batteryTone = (voltage: number): 'primary' | 'warning' | 'danger' => {
-  if (voltage >= 7.2) return 'primary'
-  if (voltage >= 6.5) return 'warning'
+  if (voltage >= BATTERY_OK_VOLTAGE) return 'primary'
+  if (voltage >= BATTERY_WARNING_VOLTAGE) return 'warning'
   return 'danger'
 }

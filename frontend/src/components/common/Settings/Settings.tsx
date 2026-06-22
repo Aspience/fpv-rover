@@ -11,10 +11,13 @@ import { useSetCameraStreamConfigMutation } from '@/api/queries'
 import { OTAUpdater } from '@/components/common/OTAUpdater'
 import { Modal, Select } from '@/components/ui'
 import type { SelectOption } from '@/components/ui'
-import { useSystemStore } from '@/store/systemStore'
 import {
   DEFAULT_BITRATE_BPS,
   DEFAULT_RESOLUTION,
+  STREAM_RECONNECT_DELAY_MS,
+} from '@/constants'
+import { useSystemStore } from '@/store/systemStore'
+import {
   getCameraBitrateOptions,
   getCameraResolutionOptions,
   parseResolution,
@@ -24,8 +27,6 @@ interface SettingsProps {
   open: boolean
   onClose: () => void
 }
-
-const STREAM_RECONNECT_DELAY_MS = 1200
 
 export const Settings = ({ open, onClose }: SettingsProps) => {
   const { t } = useTranslation()
