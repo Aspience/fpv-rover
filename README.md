@@ -326,7 +326,7 @@ Host github.com
   IdentitiesOnly yes
 ```
 
-With `./scripts/bootstrap.sh`, the script generates the key at `$HOME/.ssh/fpv_rover_deploy` (current user), pauses to show the public key, and waits for you to add it in GitHub.
+With `./scripts/bootstrap.sh`, the script generates the key at `$HOME/.ssh/fpv_rover_deploy` (current user) only if it does not already exist. When a new key is created, it pauses to show the public key and waits for you to add it in GitHub. If the key already exists, it is reused and this prompt is skipped.
 
 #### 5. GHCR login (only if images are private)
 
