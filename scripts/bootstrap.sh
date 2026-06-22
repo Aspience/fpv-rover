@@ -156,8 +156,10 @@ setup_ssh_key() {
   mkdir -p "${HOME}/.ssh"
   chmod 700 "${HOME}/.ssh"
 
+  local key_generated=false
   if [[ ! -f "$SSH_KEY" ]]; then
     run_cmd setup_ssh_key "ssh-keygen" ssh-keygen -t ed25519 -f "$SSH_KEY" -N ""
+    key_generated=true
   else
     log_info setup_ssh_key "SSH key already exists: ${SSH_KEY}"
   fi
@@ -184,12 +186,14 @@ setup_ssh_key() {
     log_info setup_ssh_key "Added github.com block to ~/.ssh/config"
   fi
 
-  if [[ "$NON_INTERACTIVE" == false ]]; then
+  if [[ "$key_generated" == true && "$NON_INTERACTIVE" == false ]]; then
     log_info setup_ssh_key "Add this deploy key in GitHub → Settings → Deploy keys (read-only):"
     echo ""
     cat "${SSH_KEY}.pub"
     echo ""
     read -r -p "Press Enter after adding the deploy key to GitHub..."
+  elif [[ "$key_generated" == false ]]; then
+    log_info setup_ssh_key "Reusing existing deploy key; skipping GitHub prompt"
   fi
 
   local ssh_test_output ssh_test_code
