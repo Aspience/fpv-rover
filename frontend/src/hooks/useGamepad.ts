@@ -3,9 +3,8 @@ import { useEffect } from 'react'
 import { sendMove } from '@/api/websocket'
 import { useControlStore } from '@/store/controlStore'
 import { useSystemStore } from '@/store/systemStore'
+import { CONTROL_SEND_HZ } from '@/constants'
 import { applyDeadzone, axisToPwm } from '@/utils'
-
-const SEND_HZ = 20
 
 export const useGamepad = (): void => {
   const motionEnabled = useSystemStore((s) => s.modules.motion)
@@ -26,7 +25,7 @@ export const useGamepad = (): void => {
         const pwmLeft = axisToPwm(-leftY)
         const pwmRight = axisToPwm(-rightY)
 
-        if (now - lastSent >= 1000 / SEND_HZ) {
+        if (now - lastSent >= 1000 / CONTROL_SEND_HZ) {
           setPwm(pwmLeft, pwmRight)
           sendMove(pwmLeft, pwmRight)
           lastSent = now

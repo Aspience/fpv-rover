@@ -2,11 +2,10 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useHealthQuery } from '@/api/queries'
+import { LOG_IDS } from '@/constants'
 import { useLogStore } from '@/store/logStore'
 import { selectCameraReady } from '@/store/selectors'
 import { useSystemStore } from '@/store/systemStore'
-
-const STARTUP_LOG_ID = 'startup'
 
 export const useStartupLog = () => {
   const { t } = useTranslation()
@@ -17,7 +16,7 @@ export const useStartupLog = () => {
 
   useEffect(() => {
     appendLog({
-      id: STARTUP_LOG_ID,
+      id: LOG_IDS.startup,
       message: t('loading'),
       tone: 'warning',
     })
@@ -27,7 +26,7 @@ export const useStartupLog = () => {
   useEffect(() => {
     if (!isReady) return
     appendLog({
-      id: STARTUP_LOG_ID,
+      id: LOG_IDS.startup,
       message: t('ready'),
       tone: 'primary',
     })

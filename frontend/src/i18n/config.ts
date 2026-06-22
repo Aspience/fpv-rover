@@ -2,10 +2,11 @@ import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 
+import { LOCALE_STORAGE_KEY } from '@/constants'
 import en from '@/i18n/locales/en.json'
 import ru from '@/i18n/locales/ru.json'
 
-export const LOCALE_STORAGE_KEY = 'fpv-rover:locale'
+export { LOCALE_STORAGE_KEY }
 
 export type LocalePreference = 'system' | 'en' | 'ru'
 export type Locale = 'en' | 'ru'

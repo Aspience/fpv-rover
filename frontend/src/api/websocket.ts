@@ -2,16 +2,14 @@ import type { ClientCommand } from '@/types/contracts'
 import { ClientCommandSchema } from '@/types/schemas'
 import { useSystemStore } from '@/store/systemStore'
 import { wsUrl } from '@/api/env'
+import { HEARTBEAT_MS, MAX_RECONNECT_MS, RECONNECT_BASE_MS } from '@/constants'
 import { handleSocketMessage } from '@/utils'
-
-const HEARTBEAT_MS = 500
-const MAX_BACKOFF_MS = 10_000
 
 class WebSocketClient {
   private socket: WebSocket | null = null
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  private backoffMs = 500
+  private backoffMs = RECONNECT_BASE_MS
   private shouldRun = false
 
   connect(): void {
@@ -46,7 +44,7 @@ class WebSocketClient {
     this.socket = socket
 
     socket.onopen = () => {
-      this.backoffMs = 500
+      this.backoffMs = RECONNECT_BASE_MS
       useSystemStore.getState().setWsConnected(true)
       this.startHeartbeat()
     }
@@ -84,7 +82,7 @@ class WebSocketClient {
     if (!this.shouldRun) return
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = setTimeout(() => {
-      this.backoffMs = Math.min(this.backoffMs * 2, MAX_BACKOFF_MS)
+      this.backoffMs = Math.min(this.backoffMs * 2, MAX_RECONNECT_MS)
       this.open()
     }, this.backoffMs)
   }

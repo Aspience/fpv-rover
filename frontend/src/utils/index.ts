@@ -7,6 +7,4 @@ export {
   getCameraResolutionOptions,
   getCameraBitrateOptions,
   parseResolution,
-  DEFAULT_RESOLUTION,
-  DEFAULT_BITRATE_BPS,
 } from './camera'

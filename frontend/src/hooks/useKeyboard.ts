@@ -3,9 +3,8 @@ import { useEffect } from 'react'
 import { sendMove } from '@/api/websocket'
 import { useControlStore } from '@/store/controlStore'
 import { useSystemStore } from '@/store/systemStore'
+import { CONTROL_SEND_HZ } from '@/constants'
 import { computePwm } from '@/utils'
-
-const SEND_HZ = 20
 
 export const useKeyboard = (): void => {
   const motionEnabled = useSystemStore((s) => s.modules.motion)
@@ -38,7 +37,7 @@ export const useKeyboard = (): void => {
       const { left, right } = computePwm(pressed)
       setPwm(left, right)
       sendMove(left, right)
-    }, 1000 / SEND_HZ)
+    }, 1000 / CONTROL_SEND_HZ)
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
