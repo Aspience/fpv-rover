@@ -47,7 +47,9 @@ jobs:
             if git diff --quiet "$PREV_TAG" HEAD -- frontend/; then
               BUILD_FRONTEND=false
             fi
-            if git diff --quiet "$PREV_TAG" HEAD -- infra/mediamtx/; then
+            # mediamtx.yml is mounted as a volume (see docker-compose) and shipped
+            # via release files, so changing it alone does not require a rebuild.
+            if git diff --quiet "$PREV_TAG" HEAD -- infra/mediamtx/ ':(exclude)infra/mediamtx/mediamtx.yml'; then
               BUILD_MEDIAMTX=false
             fi
           fi
