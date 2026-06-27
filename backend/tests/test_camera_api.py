@@ -56,3 +56,25 @@ def test_set_stream_config_rejects_invalid_values(client: TestClient) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_get_stream_config_returns_current_values(client: TestClient) -> None:
+    with patch(
+        "api.camera.mediamtx_get_stream_config",
+        new=AsyncMock(return_value={"width": 854, "height": 480, "bitrate": 1500000}),
+    ) as mock_get:
+        response = client.get("/camera/stream/config")
+
+    assert response.status_code == 200
+    assert response.json() == {"width": 854, "height": 480, "bitrate": 1500000}
+    mock_get.assert_awaited_once()
+
+
+def test_get_stream_config_maps_error_to_502(client: TestClient) -> None:
+    with patch(
+        "api.camera.mediamtx_get_stream_config",
+        new=AsyncMock(side_effect=OSError("boom")),
+    ):
+        response = client.get("/camera/stream/config")
+
+    assert response.status_code == 502
