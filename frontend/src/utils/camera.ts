@@ -24,3 +24,10 @@ export const parseResolution = (value: string): { width: number; height: number 
   const [width, height] = value.split('x').map(Number)
   return { width: width || 0, height: height || 0 }
 }
+
+export const formatResolution = (width: number, height: number): string => {
+  const preset = RESOLUTION_PRESETS.find(
+    (item) => item.width === width && item.height === height,
+  )
+  return preset ? preset.value : `${width}x${height}`
+}

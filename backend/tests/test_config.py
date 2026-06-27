@@ -48,6 +48,10 @@ def test_hardware_values_from_env_example() -> None:
     assert settings.mediamtx_api_url == "http://localhost:9997"
     assert settings.mediamtx_record_start_path == "/v3/recordings/start/{stream_path}"
     assert settings.mediamtx_record_stop_path == "/v3/recordings/stop/{stream_path}"
+    assert settings.mediamtx_stream_config_path == "/v3/config/paths/patch/{stream_path}"
+    assert (
+        settings.mediamtx_stream_config_get_path == "/v3/config/paths/get/{stream_path}"
+    )
     assert settings.power_i2c_address == 0x40
     assert settings.imu_i2c_address == 0x68
     assert settings.light_i2c_address == 0x23

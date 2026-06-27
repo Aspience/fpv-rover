@@ -10,6 +10,7 @@ import type {
 } from '@/types/contracts'
 import {
   CameraStreamConfigResponseSchema,
+  CameraStreamConfigSchema,
   ConfigResponseSchema,
   HealthResponseSchema,
   UpdateApplyResponseSchema,
@@ -55,6 +56,17 @@ export const applyUpdate = async (): Promise<UpdateApplyResponse> => {
   const parsed = UpdateApplyResponseSchema.safeParse(data)
   if (!parsed.success) {
     throw new Error(`Invalid update apply response: ${parsed.error.message}`)
+  }
+
+  return parsed.data
+}
+
+export const fetchCameraStreamConfig = async (): Promise<CameraStreamConfig> => {
+  const { data } = await apiClient.get<unknown>('/camera/stream/config')
+
+  const parsed = CameraStreamConfigSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(`Invalid camera stream config response: ${parsed.error.message}`)
   }
 
   return parsed.data

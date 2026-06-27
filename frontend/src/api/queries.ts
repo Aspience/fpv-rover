@@ -15,6 +15,7 @@ import { useEffect } from 'react'
 import {
   applyUpdate,
   checkUpdate,
+  fetchCameraStreamConfig,
   fetchConfig,
   pingHealth,
   setCameraStreamConfig,
@@ -48,6 +49,8 @@ export const roverKeys = {
   config: () => [...roverKeys.all, 'config'] as const,
 
   health: () => [...roverKeys.all, 'health'] as const,
+
+  cameraStreamConfig: () => [...roverKeys.all, 'camera-stream-config'] as const,
 
 }
 
@@ -124,10 +127,24 @@ export const useApplyUpdateMutation = () =>
 
 
 
+export const useCameraStreamConfigQuery = (enabled: boolean) =>
+  useQuery({
+    queryKey: roverKeys.cameraStreamConfig(),
+    queryFn: fetchCameraStreamConfig,
+    enabled,
+    staleTime: Infinity,
+  })
+
 export const useSetCameraStreamConfigMutation = () =>
 
   useMutation({
 
     mutationFn: setCameraStreamConfig,
+
+    onSuccess: (_data, variables) => {
+
+      queryClient.setQueryData(roverKeys.cameraStreamConfig(), variables)
+
+    },
 
   })

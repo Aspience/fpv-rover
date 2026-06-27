@@ -7,4 +7,5 @@ export {
   getCameraResolutionOptions,
   getCameraBitrateOptions,
   parseResolution,
+  formatResolution,
 } from './camera'

@@ -13,3 +13,9 @@ class CameraStreamConfigRequest(BaseModel):
 
 class CameraStreamConfigResponse(BaseModel):
     status: str = Field(description="Result of the stream config update")
+
+
+class CameraStreamConfigState(BaseModel):
+    width: int = Field(description="Current stream frame width in pixels")
+    height: int = Field(description="Current stream frame height in pixels")
+    bitrate: int = Field(description="Current stream bitrate in bits per second")

@@ -104,3 +104,9 @@ export const UpdateApplyResponseSchema = z.object({
 export const CameraStreamConfigResponseSchema = z.object({
   status: z.string(),
 })
+
+export const CameraStreamConfigSchema = z.object({
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  bitrate: z.number().int().positive(),
+})

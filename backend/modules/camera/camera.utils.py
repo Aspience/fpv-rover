@@ -62,6 +62,28 @@ async def mediamtx_set_stream_config(
             raise OSError(f"MediaMTX stream config failed: {resp.status} {text}")
 
 
+async def mediamtx_get_stream_config(
+    api_url: str,
+    get_path: str,
+    stream_path: str,
+) -> dict[str, int]:
+    path = get_path.format(stream_path=stream_path)
+    url = f"{api_url.rstrip('/')}{path}"
+    async with (
+        aiohttp.ClientSession() as session,
+        session.get(url) as resp,
+    ):
+        if resp.status >= 400:
+            text = await resp.text()
+            raise OSError(f"MediaMTX stream config read failed: {resp.status} {text}")
+        data = await resp.json()
+    return {
+        "width": int(data["rpiCameraWidth"]),
+        "height": int(data["rpiCameraHeight"]),
+        "bitrate": int(data["rpiCameraBitrate"]),
+    }
+
+
 async def set_night_mode(
     enabled: bool,
     v4l2_device: str,

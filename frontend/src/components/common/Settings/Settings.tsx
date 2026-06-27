@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -7,7 +7,10 @@ import {
   type LocalePreference,
 } from '@/i18n'
 
-import { useSetCameraStreamConfigMutation } from '@/api/queries'
+import {
+  useCameraStreamConfigQuery,
+  useSetCameraStreamConfigMutation,
+} from '@/api/queries'
 import { OTAUpdater } from '@/components/common/OTAUpdater'
 import { Modal, Select } from '@/components/ui'
 import type { SelectOption } from '@/components/ui'
@@ -18,6 +21,7 @@ import {
 } from '@/constants'
 import { useSystemStore } from '@/store/systemStore'
 import {
+  formatResolution,
   getCameraBitrateOptions,
   getCameraResolutionOptions,
   parseResolution,
@@ -36,6 +40,13 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
 
   const reconnectVideo = useSystemStore((state) => state.reconnectVideo)
   const { mutate: applyStreamConfig } = useSetCameraStreamConfigMutation()
+  const { data: streamConfig } = useCameraStreamConfigQuery(open)
+
+  useEffect(() => {
+    if (!streamConfig) return
+    setResolution(formatResolution(streamConfig.width, streamConfig.height))
+    setBitrate(String(streamConfig.bitrate))
+  }, [streamConfig])
 
   const handleChange = (next: LocalePreference) => {
     setPreference(next)
