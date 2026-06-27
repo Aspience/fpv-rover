@@ -29,40 +29,6 @@ jobs:
           echo "FRONTEND_IMAGE=ghcr.io/${owner}/${repo}-frontend" >> "$GITHUB_ENV"
           echo "MEDIAMTX_IMAGE=ghcr.io/${owner}/${repo}-mediamtx" >> "$GITHUB_ENV"
 
-      - name: Detect service changes
-        id: changes
-        run: |
-          CURRENT="${{ github.ref_name }}"
-          PREV_TAG=$(git tag -l 'v*' --sort=-version:refname | grep -v "^${CURRENT}$" | head -1 || true)
-          echo "prev_tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
-
-          BUILD_BACKEND=true
-          BUILD_FRONTEND=true
-          BUILD_MEDIAMTX=true
-
-          if [[ -n "$PREV_TAG" ]]; then
-            if git diff --quiet "$PREV_TAG" HEAD -- backend/; then
-              BUILD_BACKEND=false
-            fi
-            if git diff --quiet "$PREV_TAG" HEAD -- frontend/; then
-              BUILD_FRONTEND=false
-            fi
-            # mediamtx.yml is mounted as a volume (see docker-compose) and shipped
-            # via release files, so changing it alone does not require a rebuild.
-            if git diff --quiet "$PREV_TAG" HEAD -- infra/mediamtx/ ':(exclude)infra/mediamtx/mediamtx.yml'; then
-              BUILD_MEDIAMTX=false
-            fi
-          fi
-
-          echo "build_backend=${BUILD_BACKEND}" >> "$GITHUB_OUTPUT"
-          echo "build_frontend=${BUILD_FRONTEND}" >> "$GITHUB_OUTPUT"
-          echo "build_mediamtx=${BUILD_MEDIAMTX}" >> "$GITHUB_OUTPUT"
-
-          echo "Previous tag: ${PREV_TAG:-<none>}"
-          echo "Build backend: ${BUILD_BACKEND}"
-          echo "Build frontend: ${BUILD_FRONTEND}"
-          echo "Build mediamtx: ${BUILD_MEDIAMTX}"
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -75,6 +41,85 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect service changes
+        id: changes
+        run: |
+          CURRENT="${{ github.ref_name }}"
+          PREV_TAG=$(git tag -l 'v*' --sort=-version:refname | grep -v "^${CURRENT}$" | head -1 || true)
+          echo "prev_tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+
+          # Resolve the tag that a non-rebuilt service would reuse: prefer the
+          # value recorded in the previous tag's image-tags.env, else the tag itself.
+          resolve_prev_tag() {
+            local var_name="$1"
+            if [[ -n "$PREV_TAG" ]] && git cat-file -e "${PREV_TAG}:image-tags.env" 2>/dev/null; then
+              local value
+              value=$(git show "${PREV_TAG}:image-tags.env" | grep "^${var_name}=" | cut -d= -f2- || true)
+              if [[ -n "$value" ]]; then
+                echo "$value"
+                return 0
+              fi
+            fi
+            echo "$PREV_TAG"
+          }
+
+          # Decide whether a service must be (re)built and which tag to publish.
+          # Prints "<build_flag> <tag>". Forces a rebuild when the image we would
+          # otherwise reuse is missing from the registry (e.g. a cancelled release).
+          decide() {
+            local changed="$1" image="$2" var_name="$3"
+
+            if [[ "$changed" == "true" ]]; then
+              echo "true ${CURRENT}"
+              return 0
+            fi
+
+            local tag
+            tag=$(resolve_prev_tag "$var_name")
+
+            if [[ -n "$tag" ]] && docker buildx imagetools inspect "${image}:${tag}" >/dev/null 2>&1; then
+              echo "false ${tag}"
+            else
+              echo "true ${CURRENT}"
+            fi
+          }
+
+          BACKEND_CHANGED=true
+          FRONTEND_CHANGED=true
+          MEDIAMTX_CHANGED=true
+
+          if [[ -n "$PREV_TAG" ]]; then
+            if git diff --quiet "$PREV_TAG" HEAD -- backend/; then
+              BACKEND_CHANGED=false
+            fi
+            if git diff --quiet "$PREV_TAG" HEAD -- frontend/; then
+              FRONTEND_CHANGED=false
+            fi
+            # mediamtx.yml is mounted as a volume (see docker-compose) and shipped
+            # via release files, so changing it alone does not require a rebuild.
+            if git diff --quiet "$PREV_TAG" HEAD -- infra/mediamtx/ ':(exclude)infra/mediamtx/mediamtx.yml'; then
+              MEDIAMTX_CHANGED=false
+            fi
+          fi
+
+          read -r BUILD_BACKEND BACKEND_TAG < <(decide "$BACKEND_CHANGED" "$BACKEND_IMAGE" BACKEND_IMAGE_TAG)
+          read -r BUILD_FRONTEND FRONTEND_TAG < <(decide "$FRONTEND_CHANGED" "$FRONTEND_IMAGE" FRONTEND_IMAGE_TAG)
+          read -r BUILD_MEDIAMTX MEDIAMTX_TAG < <(decide "$MEDIAMTX_CHANGED" "$MEDIAMTX_IMAGE" MEDIAMTX_IMAGE_TAG)
+
+          {
+            echo "build_backend=${BUILD_BACKEND}"
+            echo "build_frontend=${BUILD_FRONTEND}"
+            echo "build_mediamtx=${BUILD_MEDIAMTX}"
+            echo "backend_tag=${BACKEND_TAG}"
+            echo "frontend_tag=${FRONTEND_TAG}"
+            echo "mediamtx_tag=${MEDIAMTX_TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Previous tag: ${PREV_TAG:-<none>}"
+          echo "Build backend: ${BUILD_BACKEND} (tag: ${BACKEND_TAG})"
+          echo "Build frontend: ${BUILD_FRONTEND} (tag: ${FRONTEND_TAG})"
+          echo "Build mediamtx: ${BUILD_MEDIAMTX} (tag: ${MEDIAMTX_TAG})"
 
       - name: Build and push backend image
         if: steps.changes.outputs.build_backend == 'true'
@@ -117,39 +162,11 @@ jobs:
 
       - name: Write image-tags.env
         run: |
-          CURRENT="${{ github.ref_name }}"
-          PREV_TAG="${{ steps.changes.outputs.prev_tag }}"
-
-          resolve_tag() {
-            local var_name="$1"
-            local build_flag="$2"
-
-            if [[ "$build_flag" == "true" ]]; then
-              echo "$CURRENT"
-              return 0
-            fi
-
-            if [[ -n "$PREV_TAG" ]] && git cat-file -e "${PREV_TAG}:image-tags.env" 2>/dev/null; then
-              local value
-              value=$(git show "${PREV_TAG}:image-tags.env" | grep "^${var_name}=" | cut -d= -f2- || true)
-              if [[ -n "$value" ]]; then
-                echo "$value"
-                return 0
-              fi
-            fi
-
-            echo "${PREV_TAG:-$CURRENT}"
-          }
-
-          BACKEND_TAG=$(resolve_tag BACKEND_IMAGE_TAG "${{ steps.changes.outputs.build_backend }}")
-          FRONTEND_TAG=$(resolve_tag FRONTEND_IMAGE_TAG "${{ steps.changes.outputs.build_frontend }}")
-          MEDIAMTX_TAG=$(resolve_tag MEDIAMTX_IMAGE_TAG "${{ steps.changes.outputs.build_mediamtx }}")
-
           {
-            echo "IMAGE_TAG=${CURRENT}"
-            echo "BACKEND_IMAGE_TAG=${BACKEND_TAG}"
-            echo "FRONTEND_IMAGE_TAG=${FRONTEND_TAG}"
-            echo "MEDIAMTX_IMAGE_TAG=${MEDIAMTX_TAG}"
+            echo "IMAGE_TAG=${{ github.ref_name }}"
+            echo "BACKEND_IMAGE_TAG=${{ steps.changes.outputs.backend_tag }}"
+            echo "FRONTEND_IMAGE_TAG=${{ steps.changes.outputs.frontend_tag }}"
+            echo "MEDIAMTX_IMAGE_TAG=${{ steps.changes.outputs.mediamtx_tag }}"
           } > image-tags.env
 
           echo "Wrote image-tags.env:"
