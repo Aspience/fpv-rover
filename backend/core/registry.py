@@ -42,6 +42,10 @@ class ModuleRegistry:
             from modules.camera.module import CameraModule
 
             return CameraModule(self.event_bus, self.settings)
+        if name == "bluetooth":
+            from modules.bluetooth.module import BluetoothModule
+
+            return BluetoothModule(self.event_bus, self.settings)
         raise KeyError(f"Unknown module: {name}")
 
     async def start_enabled(self) -> None:

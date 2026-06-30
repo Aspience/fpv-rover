@@ -12,6 +12,7 @@ export const DEFAULT_WEBRTC_PORT = 8889
 
 export const API_BASE_PATH = '/api'
 export const WS_PATH = '/ws'
+export const BLUETOOTH_SCAN_WS_PATH = '/api/bluetooth/scan-ws'
 export const WHEP_STREAM_PATH = '/rover/whep'
 
 // ── WebSocket / reconnection ───────────────────────────────────────────────

@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     modules_imu_enabled: bool
     modules_light_enabled: bool
     modules_camera_enabled: bool
+    modules_bluetooth_enabled: bool
 
     log_level: str
     host: str
@@ -97,6 +98,7 @@ class Settings(BaseSettings):
             "imu": self.modules_imu_enabled,
             "light": self.modules_light_enabled,
             "camera": self.modules_camera_enabled,
+            "bluetooth": self.modules_bluetooth_enabled,
         }
 
 

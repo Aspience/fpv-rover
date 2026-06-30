@@ -11,8 +11,9 @@ import {
   useCameraStreamConfigQuery,
   useSetCameraStreamConfigMutation,
 } from '@/api/queries'
+import { Bluetooth } from '@/components/common/Bluetooth'
 import { OTAUpdater } from '@/components/common/OTAUpdater'
-import { Modal, Select } from '@/components/ui'
+import { Modal, Select, Tab, TabList, TabPanel, Tabs } from '@/components/ui'
 import type { SelectOption } from '@/components/ui'
 import {
   DEFAULT_BITRATE_BPS,
@@ -39,6 +40,7 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
   const [bitrate, setBitrate] = useState(String(DEFAULT_BITRATE_BPS))
 
   const reconnectVideo = useSystemStore((state) => state.reconnectVideo)
+  const bluetoothEnabled = useSystemStore((state) => state.modules.bluetooth)
   const { mutate: applyStreamConfig } = useSetCameraStreamConfigMutation()
   const { data: streamConfig } = useCameraStreamConfigQuery(open)
 
@@ -95,38 +97,55 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
       closeLabel={t('settingsClose')}
       panelClassName="min-w-48 w-full"
     >
-        <Select
-          id="locale-select"
-          label={t('language')}
-          options={localeOptions}
-          value={preference}
-          onChange={(event) =>
-            handleChange(event.target.value as LocalePreference)
-          }
-        />
+      <Tabs defaultValue="general">
+        <TabList aria-label={t('settings')}>
+          <Tab value="general">{t('settingsTabGeneral')}</Tab>
+          {bluetoothEnabled ? (
+            <Tab value="bluetooth">{t('settingsTabBluetooth')}</Tab>
+          ) : null}
+        </TabList>
 
-        <div className="mt-3 flex gap-3">
-          <div className="flex-1">
-            <Select
-              id="resolution-select"
-              label={t('cameraResolution')}
-              options={resolutionOptions}
-              value={resolution}
-              onChange={(event) => handleResolutionChange(event.target.value)}
-            />
-          </div>
-          <div className="flex-1">
-            <Select
-              id="bitrate-select"
-              label={t('cameraBitrate')}
-              options={bitrateOptions}
-              value={bitrate}
-              onChange={(event) => handleBitrateChange(event.target.value)}
-            />
-          </div>
-        </div>
+        <TabPanel value="general">
+          <Select
+            id="locale-select"
+            label={t('language')}
+            options={localeOptions}
+            value={preference}
+            onChange={(event) =>
+              handleChange(event.target.value as LocalePreference)
+            }
+          />
 
-        <OTAUpdater onInstallStart={onClose} />
+          <div className="mt-3 flex gap-3">
+            <div className="flex-1">
+              <Select
+                id="resolution-select"
+                label={t('cameraResolution')}
+                options={resolutionOptions}
+                value={resolution}
+                onChange={(event) => handleResolutionChange(event.target.value)}
+              />
+            </div>
+            <div className="flex-1">
+              <Select
+                id="bitrate-select"
+                label={t('cameraBitrate')}
+                options={bitrateOptions}
+                value={bitrate}
+                onChange={(event) => handleBitrateChange(event.target.value)}
+              />
+            </div>
+          </div>
+
+          <OTAUpdater onInstallStart={onClose} />
+        </TabPanel>
+
+        {bluetoothEnabled ? (
+          <TabPanel value="bluetooth">
+            <Bluetooth />
+          </TabPanel>
+        ) : null}
+      </Tabs>
     </Modal>
   )
 }

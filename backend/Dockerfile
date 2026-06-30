@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     i2c-tools \
     v4l-utils \
+    bluez \
+    dbus \
     && ARCH="$(dpkg --print-architecture)" \
     && case "${ARCH}" in \
          amd64) DOCKER_ARCH=x86_64; COMPOSE_ARCH=x86_64 ;; \

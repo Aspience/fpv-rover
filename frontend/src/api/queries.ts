@@ -17,7 +17,10 @@ import {
   checkUpdate,
   fetchCameraStreamConfig,
   fetchConfig,
+  fetchPairedDevices,
+  pairDevice,
   pingHealth,
+  removeDevice,
   setCameraStreamConfig,
 } from '@/api/http'
 
@@ -51,6 +54,8 @@ export const roverKeys = {
   health: () => [...roverKeys.all, 'health'] as const,
 
   cameraStreamConfig: () => [...roverKeys.all, 'camera-stream-config'] as const,
+
+  bluetoothDevices: () => [...roverKeys.all, 'bluetooth-devices'] as const,
 
 }
 
@@ -147,4 +152,31 @@ export const useSetCameraStreamConfigMutation = () =>
 
     },
 
+  })
+
+export const useBluetoothDevicesQuery = (enabled: boolean) =>
+  useQuery({
+    queryKey: roverKeys.bluetoothDevices(),
+    queryFn: fetchPairedDevices,
+    enabled,
+  })
+
+export const usePairDeviceMutation = () =>
+  useMutation({
+    mutationFn: pairDevice,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: roverKeys.bluetoothDevices(),
+      })
+    },
+  })
+
+export const useRemoveDeviceMutation = () =>
+  useMutation({
+    mutationFn: removeDevice,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: roverKeys.bluetoothDevices(),
+      })
+    },
   })

@@ -1,5 +1,6 @@
 import {
   API_BASE_PATH,
+  BLUETOOTH_SCAN_WS_PATH,
   DEFAULT_API_PORT,
   DEFAULT_RPI_HOST,
   DEFAULT_WEBRTC_PORT,
@@ -36,6 +37,11 @@ export const apiBaseUrl = (): string => API_BASE_PATH
 export const wsUrl = (): string => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}${WS_PATH}`
+}
+
+export const bluetoothScanWsUrl = (): string => {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}${BLUETOOTH_SCAN_WS_PATH}`
 }
 
 export const whepBaseUrl = (): string => `http://${browserHost()}:${env.webrtcPort}`

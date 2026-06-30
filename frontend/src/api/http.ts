@@ -1,6 +1,8 @@
 import { apiClient, whepClient } from '@/api/client'
 import { WHEP_STREAM_PATH } from '@/constants'
 import type {
+  BluetoothActionResponse,
+  BluetoothDevice,
   CameraStreamConfig,
   CameraStreamConfigResponse,
   ConfigResponse,
@@ -9,6 +11,8 @@ import type {
   UpdateCheckResponse,
 } from '@/types/contracts'
 import {
+  BluetoothActionResponseSchema,
+  BluetoothDeviceListSchema,
   CameraStreamConfigResponseSchema,
   CameraStreamConfigSchema,
   ConfigResponseSchema,
@@ -80,6 +84,45 @@ export const setCameraStreamConfig = async (
   const parsed = CameraStreamConfigResponseSchema.safeParse(data)
   if (!parsed.success) {
     throw new Error(`Invalid camera stream config response: ${parsed.error.message}`)
+  }
+
+  return parsed.data
+}
+
+export const fetchPairedDevices = async (): Promise<BluetoothDevice[]> => {
+  const { data } = await apiClient.get<unknown>('/bluetooth/devices')
+
+  const parsed = BluetoothDeviceListSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(`Invalid bluetooth devices response: ${parsed.error.message}`)
+  }
+
+  return parsed.data
+}
+
+export const pairDevice = async (
+  mac: string,
+): Promise<BluetoothActionResponse> => {
+  const { data } = await apiClient.post<unknown>('/bluetooth/pair', { mac })
+
+  const parsed = BluetoothActionResponseSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(`Invalid bluetooth pair response: ${parsed.error.message}`)
+  }
+
+  return parsed.data
+}
+
+export const removeDevice = async (
+  mac: string,
+): Promise<BluetoothActionResponse> => {
+  const { data } = await apiClient.delete<unknown>(
+    `/bluetooth/devices/${encodeURIComponent(mac)}`,
+  )
+
+  const parsed = BluetoothActionResponseSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(`Invalid bluetooth remove response: ${parsed.error.message}`)
   }
 
   return parsed.data

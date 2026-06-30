@@ -25,6 +25,7 @@ const defaultModules: ModulesConfig = {
   imu: false,
   light: false,
   camera: false,
+  bluetooth: false,
 }
 
 export const useSystemStore = create<SystemState>((set) => ({

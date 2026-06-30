@@ -23,6 +23,8 @@ def test_openapi_contains_contract_schemas() -> None:
     assert "HeartbeatCommand" in schemas
     assert "ErrorMessage" in schemas
     assert "WsProtocolDocument" in schemas
+    assert "BluetoothData" in schemas
+    assert "BluetoothDevice" in schemas
 
 
 def test_swagger_docs_available() -> None:
