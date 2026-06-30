@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import suppress
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
@@ -80,6 +81,17 @@ async def remove_device(mac: str) -> BluetoothActionResponse:
     return BluetoothActionResponse(status="ok")
 
 
+async def _wait_for_disconnect(websocket: WebSocket) -> None:
+    """Resolve once the client closes the socket (modal/tab closed)."""
+    try:
+        while True:
+            message = await websocket.receive()
+            if message["type"] == "websocket.disconnect":
+                return
+    except WebSocketDisconnect:
+        return
+
+
 @router.websocket("/bluetooth/scan-ws")
 async def scan_ws(websocket: WebSocket) -> None:
     if not get_settings().modules_bluetooth_enabled:
@@ -87,12 +99,30 @@ async def scan_ws(websocket: WebSocket) -> None:
         return
 
     bluetooth_service = get_bluetooth_service()
-    try:
-        await websocket.accept()
+    await websocket.accept()
+    logger.info("Bluetooth scan WebSocket accepted from %s", websocket.client)
+
+    async def _pump() -> None:
         async for device in bluetooth_service.start_scan():
             await websocket.send_json(device)
-    except WebSocketDisconnect:
-        pass
+
+    scan_task = asyncio.create_task(_pump())
+    disconnect_task = asyncio.create_task(_wait_for_disconnect(websocket))
+    try:
+        # Run until either the scan ends or the client disconnects.
+        await asyncio.wait(
+            {scan_task, disconnect_task},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        if disconnect_task.done():
+            logger.info("Bluetooth scan WebSocket closed by client")
+        else:
+            logger.warning("Bluetooth scan ended before client disconnect")
     finally:
+        for task in (scan_task, disconnect_task):
+            task.cancel()
+        for task in (scan_task, disconnect_task):
+            with suppress(asyncio.CancelledError, Exception):
+                await task
         # Guaranteed teardown when the browser/modal closes the socket.
         bluetooth_service.stop_scan()
