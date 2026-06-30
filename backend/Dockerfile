@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     v4l-utils \
     bluez \
     dbus \
+    util-linux \
     && ARCH="$(dpkg --print-architecture)" \
     && case "${ARCH}" in \
          amd64) DOCKER_ARCH=x86_64; COMPOSE_ARCH=x86_64 ;; \
