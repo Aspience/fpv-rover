@@ -160,36 +160,6 @@ jobs:
             ${{ env.MEDIAMTX_IMAGE }}:${{ github.ref_name }}
             ${{ env.MEDIAMTX_IMAGE }}:latest
 
-      # When a service is not rebuilt, alias the reused image to the current
-      # release tag (and latest). This keeps every release tag present in the
-      # registry so the next release's reuse lookup (`imagetools inspect
-      # <image>:<prev_tag>`) succeeds instead of force-rebuilding. image-tags.env
-      # is only a release asset (not committed), so we cannot rely on reading it
-      # back from the git tree.
-      - name: Retag reused backend image
-        if: steps.changes.outputs.build_backend == 'false'
-        run: |
-          docker buildx imagetools create \
-            --tag "${BACKEND_IMAGE}:${{ github.ref_name }}" \
-            --tag "${BACKEND_IMAGE}:latest" \
-            "${BACKEND_IMAGE}:${{ steps.changes.outputs.backend_tag }}"
-
-      - name: Retag reused frontend image
-        if: steps.changes.outputs.build_frontend == 'false'
-        run: |
-          docker buildx imagetools create \
-            --tag "${FRONTEND_IMAGE}:${{ github.ref_name }}" \
-            --tag "${FRONTEND_IMAGE}:latest" \
-            "${FRONTEND_IMAGE}:${{ steps.changes.outputs.frontend_tag }}"
-
-      - name: Retag reused mediamtx image
-        if: steps.changes.outputs.build_mediamtx == 'false'
-        run: |
-          docker buildx imagetools create \
-            --tag "${MEDIAMTX_IMAGE}:${{ github.ref_name }}" \
-            --tag "${MEDIAMTX_IMAGE}:latest" \
-            "${MEDIAMTX_IMAGE}:${{ steps.changes.outputs.mediamtx_tag }}"
-
       - name: Write image-tags.env
         run: |
           {
