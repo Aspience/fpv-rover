@@ -18,12 +18,21 @@ services:
     devices:
       - /dev/i2c-1:/dev/i2c-1
       - /dev/video0:/dev/video0
-    # NET_ADMIN lets bluetoothctl control the host adapter over the shared D-Bus.
+    # Bluetooth: PF_BLUETOOTH/mgmt sockets are bound to the network namespace and
+    # the kernel won't create them outside the host netns. We keep the container
+    # on the bridge network (so nginx/frontend can reach backend:8000) and run
+    # only bluetoothctl in the host netns via nsenter (see bluetooth.config).
+    #   - NET_ADMIN/NET_RAW: open and control the Bluetooth mgmt socket.
+    #   - SYS_ADMIN: required by nsenter to re-enter the host network namespace.
     cap_add:
       - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
     volumes:
       - /sys/bus/w1:/sys/bus/w1:ro
       - /var/run/dbus:/var/run/dbus
+      # Host network namespace, entered by bluetoothctl via nsenter.
+      - /proc/1/ns/net:/rootns/net
     restart: unless-stopped
 
   frontend:

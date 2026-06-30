@@ -35,7 +35,7 @@ def _clean(line: str) -> str:
 
 def _run(args: list[str]) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
-        [config.BLUETOOTHCTL_BIN, *args],
+        config.bluetoothctl_argv(args),
         capture_output=True,
         text=True,
         check=False,
@@ -123,31 +123,20 @@ class BluetoothService:
 
         A one-shot ``bluetoothctl scan on`` exits immediately and never streams
         discoveries, so we keep an interactive session alive and feed it ``scan
-        on`` on stdin. ``stdbuf -oL`` forces line buffering on the pipe; if it is
-        unavailable we fall back to a plain spawn.
+        on`` on stdin. The argv is wrapped with ``nsenter`` (host network
+        namespace) and ``stdbuf -oL`` as needed; see ``config.bluetoothctl_argv``.
         """
-        base = [config.BLUETOOTHCTL_BIN]
-        try:
-            proc = subprocess.Popen(
-                ["stdbuf", "-oL", *base],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-            logger.debug("Spawned interactive bluetoothctl via stdbuf")
-            return proc
-        except FileNotFoundError:
-            logger.warning("stdbuf not found; spawning bluetoothctl without it")
-            return subprocess.Popen(
-                base,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
+        argv = config.bluetoothctl_argv([], line_buffered=True)
+        proc = subprocess.Popen(
+            argv,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        logger.debug("Spawned interactive bluetoothctl: %s", " ".join(argv))
+        return proc
 
     async def start_scan(self) -> AsyncIterator[dict[str, str]]:
         """Run an interactive ``bluetoothctl`` scan and yield discovered devices.
@@ -163,9 +152,11 @@ class BluetoothService:
 
         stdin = self.scan_process.stdin
         if stdin is not None:
-            stdin.write("scan on\n")
+            # Power the controller on first: a soft-blocked/down adapter silently
+            # discovers nothing. Then start discovery.
+            stdin.write("power on\nscan on\n")
             stdin.flush()
-            logger.debug("Sent 'scan on' to bluetoothctl session")
+            logger.debug("Sent 'power on' + 'scan on' to bluetoothctl session")
 
         stdout = self.scan_process.stdout
         if stdout is None:
