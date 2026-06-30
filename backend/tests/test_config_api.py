@@ -25,6 +25,7 @@ def test_get_config_returns_modules() -> None:
         "imu",
         "light",
         "camera",
+        "bluetooth",
     }
     for enabled in data["modules"].values():
         assert isinstance(enabled, bool)

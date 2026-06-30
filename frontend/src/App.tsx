@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 
 import { useAppBootstrapQuery, useConfigQuery } from '@/api/queries'
 import { wsClient } from '@/api/websocket'
-import { AppLoader, EventLog, Light, OSD, OtaUpdatingOverlay, Settings, VideoPlayer } from '@/components/common'
+import { AppLoader, EventLog, Light, OSD, OtaUpdatingOverlay, Settings, StatusBar, VideoPlayer } from '@/components/common'
 import { Button } from '@/components/ui'
-import { useConnectionLostLog, useGamepad, useKeyboard, useOtaUpdater, useStartupLog, useUpdateCheckLog } from '@/hooks'
+import { useBluetoothStatusLog, useConnectionLostLog, useGamepad, useKeyboard, useOtaUpdater, useStartupLog, useUpdateCheckLog } from '@/hooks'
 import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
 
@@ -16,6 +16,7 @@ const App = () => {
   useKeyboard()
   useStartupLog()
   useConnectionLostLog()
+  useBluetoothStatusLog()
   useUpdateCheckLog()
   useOtaUpdater()
   useConfigQuery()
@@ -66,6 +67,7 @@ const App = () => {
         <SettingsIcon className="size-5" aria-hidden="true" />
       </Button>
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <StatusBar className="absolute top-3 left-1/2 z-dashboard -translate-x-1/2 backdrop-blur-sm" />
       {lightEnabled && (
         <Light className="absolute bottom-4 left-1/2 z-dashboard -translate-x-1/2" />
       )}

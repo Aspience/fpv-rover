@@ -19,6 +19,12 @@ const imuDataSchema = z.object({
   az_g: z.number(),
 })
 
+const bluetoothDataSchema = z.object({
+  connected: z.boolean(),
+  name: z.string().nullable(),
+  mac: z.string().nullable(),
+})
+
 const thermalDataSchema = z
   .object({
     motor_steering: z.number().optional(),
@@ -38,6 +44,7 @@ export const TelemetryMessageSchema = z.object({
     light: lightDataSchema.optional(),
     thermal: thermalDataSchema.optional(),
     imu: imuDataSchema.optional(),
+    bluetooth: bluetoothDataSchema.optional(),
   }),
 })
 
@@ -76,6 +83,7 @@ export const ConfigResponseSchema = z.object({
     imu: z.boolean(),
     light: z.boolean(),
     camera: z.boolean(),
+    bluetooth: z.boolean(),
   }),
 })
 
@@ -109,4 +117,16 @@ export const CameraStreamConfigSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   bitrate: z.number().int().positive(),
+})
+
+export const BluetoothDeviceSchema = z.object({
+  mac: z.string(),
+  name: z.string(),
+  connected: z.boolean(),
+})
+
+export const BluetoothDeviceListSchema = z.array(BluetoothDeviceSchema)
+
+export const BluetoothActionResponseSchema = z.object({
+  status: z.string(),
 })

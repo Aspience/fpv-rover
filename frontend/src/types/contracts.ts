@@ -5,6 +5,7 @@ export interface ModulesConfig {
   imu: boolean
   light: boolean
   camera: boolean
+  bluetooth: boolean
 }
 
 export interface ConfigResponse {
@@ -70,6 +71,22 @@ export interface ImuData {
   az_g: number
 }
 
+export interface BluetoothData {
+  connected: boolean
+  name: string | null
+  mac: string | null
+}
+
+export interface BluetoothDevice {
+  mac: string
+  name: string
+  connected: boolean
+}
+
+export interface BluetoothActionResponse {
+  status: string
+}
+
 export interface ThermalData {
   motor_steering?: number
   motor_front?: number
@@ -86,6 +103,7 @@ export interface TelemetryModules {
   light?: LightData
   thermal?: ThermalData
   imu?: ImuData
+  bluetooth?: BluetoothData
 }
 
 export interface TelemetryMessage {

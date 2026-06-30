@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from modules.bluetooth.schema import BluetoothData
 from modules.imu.schema import ImuData
 from modules.light.schema import LightData
 from modules.motion.schema import MotionData
@@ -19,6 +20,7 @@ class TelemetryModules(BaseModel):
     light: LightData | None = None
     thermal: ThermalData | None = None
     imu: ImuData | None = None
+    bluetooth: BluetoothData | None = None
 
     model_config = {"extra": "allow"}
 

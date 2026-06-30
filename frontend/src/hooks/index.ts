@@ -1,5 +1,7 @@
 export { useGamepad } from './useGamepad'
 export { useKeyboard } from './useKeyboard'
+export { useBluetoothScan } from './useBluetoothScan'
+export { useBluetoothStatusLog } from './useBluetoothStatusLog'
 export { useConnectionLostLog } from './useConnectionLostLog'
 export { useStartupLog } from './useStartupLog'
 export { useUpdateCheckLog } from './useUpdateCheckLog'

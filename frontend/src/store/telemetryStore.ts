@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 
-import type { ImuData, LightData, PowerData, ThermalData } from '@/types/contracts'
+import type {
+  BluetoothData,
+  ImuData,
+  LightData,
+  PowerData,
+  ThermalData,
+} from '@/types/contracts'
 import { attitudeFromImu } from '@/utils/telemetry'
 
 interface TelemetryState {
@@ -8,6 +14,7 @@ interface TelemetryState {
   light: LightData | null
   imu: ImuData | null
   thermal: ThermalData | null
+  bluetooth: BluetoothData | null
   pitch: number
   roll: number
   updateFromModules: (modules: {
@@ -15,6 +22,7 @@ interface TelemetryState {
     light?: LightData
     imu?: ImuData
     thermal?: ThermalData
+    bluetooth?: BluetoothData
   }) => void
 }
 
@@ -23,6 +31,7 @@ export const useTelemetryStore = create<TelemetryState>((set) => ({
   light: null,
   imu: null,
   thermal: null,
+  bluetooth: null,
   pitch: 0,
   roll: 0,
   updateFromModules: (modules) =>
@@ -31,6 +40,7 @@ export const useTelemetryStore = create<TelemetryState>((set) => ({
       if (modules.power) next.power = modules.power
       if (modules.light) next.light = modules.light
       if (modules.thermal) next.thermal = modules.thermal
+      if (modules.bluetooth) next.bluetooth = modules.bluetooth
       if (modules.imu) {
         next.imu = modules.imu
         const attitude = attitudeFromImu(modules.imu)

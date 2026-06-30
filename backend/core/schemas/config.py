@@ -12,6 +12,7 @@ class ModulesConfig(BaseModel):
     imu: bool = False
     light: bool = False
     camera: bool = False
+    bluetooth: bool = False
 
 
 class ConfigResponse(BaseModel):

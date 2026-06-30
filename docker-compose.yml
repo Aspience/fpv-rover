@@ -18,8 +18,12 @@ services:
     devices:
       - /dev/i2c-1:/dev/i2c-1
       - /dev/video0:/dev/video0
+    # NET_ADMIN lets bluetoothctl control the host adapter over the shared D-Bus.
+    cap_add:
+      - NET_ADMIN
     volumes:
       - /sys/bus/w1:/sys/bus/w1:ro
+      - /var/run/dbus:/var/run/dbus
     restart: unless-stopped
 
   frontend:
