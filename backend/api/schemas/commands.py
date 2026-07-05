@@ -13,6 +13,8 @@ from modules.motion.schema import MoveCommand
 
 class HeartbeatCommand(BaseModel):
     cmd: Literal["heartbeat"]
+    # Client-side epoch milliseconds; echoed back via telemetry for RTT/ping.
+    ts: int | None = None
 
 
 ClientCommand = Annotated[

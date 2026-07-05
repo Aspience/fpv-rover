@@ -1,6 +1,6 @@
 export { formatTimestamp, formatVersion } from './format'
 export { applyDeadzone, axisToPwm, computePwm } from './input'
-export { attitudeFromImu, batteryTone } from './telemetry'
+export { attitudeFromImu, batteryTone, pingColor } from './telemetry'
 export { handleSocketMessage } from './message'
 export { createLogId } from './id'
 export {

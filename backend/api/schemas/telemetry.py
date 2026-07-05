@@ -28,3 +28,5 @@ class TelemetryModules(BaseModel):
 class TelemetryMessage(BaseModel):
     type: Literal["telemetry"] = "telemetry"
     modules: TelemetryModules = Field(default_factory=TelemetryModules)
+    # Echo of the last client heartbeat timestamp so clients can derive ping.
+    client_ts: int | None = None
