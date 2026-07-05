@@ -1,4 +1,4 @@
-"""WebSocket telemetry hub (20 Hz) and command channel with heartbeat watchdog."""
+"""WebSocket telemetry hub and command channel with heartbeat watchdog."""
 
 from __future__ import annotations
 

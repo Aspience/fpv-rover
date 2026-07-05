@@ -22,7 +22,7 @@ class WsProtocolDocument(BaseModel):
 
     endpoint: Literal["/ws"] = "/ws"
     server_to_client: TelemetryMessage = Field(
-        description="Broadcast at 20 Hz while connected"
+        description="Broadcast at ROVER_WS_TELEMETRY_HZ (default 20) while connected"
     )
     heartbeat: HeartbeatCommand
     move: MoveCommand

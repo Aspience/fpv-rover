@@ -18,16 +18,17 @@ from api.websocket import router as websocket_router
 WS_DESCRIPTION = """
 ## WebSocket `/ws`
 
-Real-time telemetry (20 Hz) and command channel.
+Real-time telemetry (rate set by `ROVER_WS_TELEMETRY_HZ`, default 20 Hz) and command channel.
 
 ### Server → client
 - `TelemetryMessage` — aggregated module telemetry
 
 ### Client → server
 - `HeartbeatCommand` — required every 500 ms while connected
-- `MoveCommand` — tank drive PWM (0-100 per track)
+- `MoveCommand` — throttle (−100…100) and absolute steer angle (`steer_deg`)
+- `CalibrateCommand` — steering homing / encoder calibration
 - `SetBrightnessCommand` — headlight level (0-100)
-- `RecordCommand` — start/stop camera recording
+- `RecordCommand` — start/stop camera recording (backend only today; no UI sender)
 
 See `GET /ws-protocol` for JSON Schema definitions.
 """
