@@ -36,6 +36,7 @@ class TelemetryHub:
         self.settings = get_settings()
         self._telemetry: dict[str, Any] = {}
         self._last_heartbeat: float = time.monotonic()
+        self._last_client_ts: int | None = None
         self._clients: set[WebSocket] = set()
         self._lock = asyncio.Lock()
         self._running = False
@@ -91,6 +92,8 @@ class TelemetryHub:
 
         if isinstance(command, HeartbeatCommand):
             self.record_heartbeat()
+            if command.ts is not None:
+                self._last_client_ts = command.ts
             return
 
         if isinstance(command, MoveCommand):
@@ -131,7 +134,8 @@ class TelemetryHub:
         interval = 1.0 / self.settings.ws_telemetry_hz
         while self._running:
             message = TelemetryMessage(
-                modules=TelemetryModules.model_validate(self._telemetry)
+                modules=TelemetryModules.model_validate(self._telemetry),
+                client_ts=self._last_client_ts,
             ).model_dump_json()
             async with self._lock:
                 dead: list[WebSocket] = []

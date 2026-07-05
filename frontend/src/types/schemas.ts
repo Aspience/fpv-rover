@@ -38,6 +38,7 @@ const thermalDataSchema = z
 
 export const TelemetryMessageSchema = z.object({
   type: z.literal('telemetry'),
+  client_ts: z.number().nullable(),
   modules: z.object({
     power: powerDataSchema.optional(),
     motion: motionDataSchema.optional(),
@@ -55,6 +56,7 @@ export const ErrorMessageSchema = z.object({
 
 export const HeartbeatCommandSchema = z.object({
   cmd: z.literal('heartbeat'),
+  ts: z.number().optional(),
 })
 
 export const MoveCommandSchema = z.object({

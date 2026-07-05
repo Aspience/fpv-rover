@@ -22,6 +22,8 @@
   "bluetoothRemove": "Удалить",
   "bluetoothDeviceConnected": "Bluetooth-устройство подключено",
   "bluetoothDeviceDisconnected": "Bluetooth-устройство отключено",
+  "ping": "Пинг до бэкенда",
+  "pingUnit": "мс",
   "languageSystem": "Как в системе",
   "languageEn": "English",
   "languageRu": "Русский",

@@ -20,6 +20,12 @@ export const HEARTBEAT_MS = 500
 export const RECONNECT_BASE_MS = 500
 export const MAX_RECONNECT_MS = 10_000
 
+// ── Link / ping thresholds (ms) ────────────────────────────────────────────
+/** Upper bound for a "good" round-trip time to the backend. */
+export const PING_GOOD_MS = 80
+/** Upper bound for an acceptable round-trip time; above this is considered bad. */
+export const PING_WARN_MS = 200
+
 // ── Control input ──────────────────────────────────────────────────────────
 /** How often control commands are pushed to the rover (Hz). */
 export const CONTROL_SEND_HZ = 20

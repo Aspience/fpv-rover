@@ -109,10 +109,14 @@ export interface TelemetryModules {
 export interface TelemetryMessage {
   type: 'telemetry'
   modules: TelemetryModules
+  /** Echo of the last client heartbeat timestamp (epoch ms) for ping. */
+  client_ts: number | null
 }
 
 export interface HeartbeatCommand {
   cmd: 'heartbeat'
+  /** Client epoch milliseconds, echoed back via telemetry to derive ping. */
+  ts?: number
 }
 
 export interface MoveCommand {

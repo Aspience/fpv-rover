@@ -67,7 +67,7 @@ class WebSocketClient {
   private startHeartbeat(): void {
     this.clearHeartbeat()
     this.heartbeatTimer = setInterval(() => {
-      this.send({ cmd: 'heartbeat' })
+      this.send({ cmd: 'heartbeat', ts: Date.now() })
     }, HEARTBEAT_MS)
   }
 

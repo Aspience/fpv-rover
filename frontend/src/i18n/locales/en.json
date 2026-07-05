@@ -22,6 +22,8 @@
   "bluetoothRemove": "Remove",
   "bluetoothDeviceConnected": "Bluetooth device connected",
   "bluetoothDeviceDisconnected": "Bluetooth device disconnected",
+  "ping": "Backend ping",
+  "pingUnit": "ms",
   "languageSystem": "System default",
   "languageEn": "English",
   "languageRu": "Russian",

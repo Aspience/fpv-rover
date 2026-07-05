@@ -17,6 +17,8 @@ interface TelemetryState {
   bluetooth: BluetoothData | null
   pitch: number
   roll: number
+  pingMs: number | null
+  lastPingTs: number | null
   updateFromModules: (modules: {
     power?: PowerData
     light?: LightData
@@ -24,6 +26,7 @@ interface TelemetryState {
     thermal?: ThermalData
     bluetooth?: BluetoothData
   }) => void
+  recordPing: (clientTs: number) => void
 }
 
 export const useTelemetryStore = create<TelemetryState>((set) => ({
@@ -34,6 +37,18 @@ export const useTelemetryStore = create<TelemetryState>((set) => ({
   bluetooth: null,
   pitch: 0,
   roll: 0,
+  pingMs: null,
+  lastPingTs: null,
+  recordPing: (clientTs) =>
+    set((state) => {
+      // The backend repeats the same client_ts across telemetry frames until
+      // the next heartbeat, so only measure RTT once per distinct value.
+      if (clientTs === state.lastPingTs) return state
+      return {
+        lastPingTs: clientTs,
+        pingMs: Math.max(0, Math.round(Date.now() - clientTs)),
+      }
+    }),
   updateFromModules: (modules) =>
     set((state) => {
       const next = { ...state }

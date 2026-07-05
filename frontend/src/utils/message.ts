@@ -11,6 +11,10 @@ export const handleSocketMessage = (raw: string): void => {
 
   const telemetry = TelemetryMessageSchema.safeParse(json)
   if (telemetry.success) {
+    const clientTs = telemetry.data.client_ts
+    if (typeof clientTs === 'number') {
+      useTelemetryStore.getState().recordPing(clientTs)
+    }
     useTelemetryStore.getState().updateFromModules(telemetry.data.modules)
     return
   }
