@@ -7,7 +7,6 @@ Monorepo for an FPV rover (LEGO Audi e-tron) on Raspberry Pi Zero 2 W.
 ### Overview
 
 - [Structure](#structure)
-- [Requirements](#requirements)
 
 ### Local development
 
@@ -43,19 +42,34 @@ Monorepo for an FPV rover (LEGO Audi e-tron) on Raspberry Pi Zero 2 W.
 
 ```
 fpv-rover/
-├── backend/          # Python — FastAPI, hardware modules, WebSocket telemetry
-│   └── modules/<name>/   # e.g. power.config.py, power.module.py, power.schema.py, power.utils.py
-├── frontend/         # React UI — dashboard, OSD, video, controls
-├── infra/            # Nginx reverse proxy, MediaMTX streaming config
+├── backend/          # Python — FastAPI, hardware modules, WebSocket
+│   ├── api/          # REST routes, WebSocket handler, command/telemetry schemas
+│   ├── core/         # Settings, event bus, module registry, startup
+│   ├── modules/      # Pluggable hardware modules (see below)
+│   └── tests/
+├── frontend/         # React SPA — live video, OSD, motion levers, settings
+├── infra/            # Nginx reverse proxy, MediaMTX, systemd unit
+├── scripts/          # Bootstrap and OTA update scripts
 ├── .env.example      # Shared environment template (backend + frontend)
 └── docker-compose.yml
 ```
 
-## Requirements
+**Backend modules** (`backend/modules/<name>/`): each module typically has `*.module.py`, `*.schema.py`, `*.config.py`, and optional `*.utils.py` / `*.service.py`.
 
-- Python **3.14.5** (managed via [uv](https://docs.astral.sh/uv/))
-- [uv](https://docs.astral.sh/uv/) for backend dependencies
-- **Node.js 22+** and npm for the frontend
+| Module | Role |
+|--------|------|
+| `motion` | LEGO Control+ drive (front/rear) + steering via TB6612FNG + pigpio; PID closed loop, homing calibration |
+| `gamepad` | Physical gamepad over Linux evdev (`/dev/input`); maps to motion commands on the backend |
+| `power` | INA219 battery monitoring (I2C) |
+| `thermal` | DS18B20 temperature sensors (1-Wire) |
+| `imu` | MPU6050 orientation (I2C) |
+| `light` | BH1750 ambient lux (I2C); triggers camera night mode below threshold |
+| `camera` | MediaMTX integration — recording and stream config |
+| `bluetooth` | Bluetooth device pairing (host netns via `nsenter`) |
+
+Motion tuning constants (PID loop rate, homing power, throttle limits, etc.) live in `motion.config.py`. Gamepad evdev codes and poll intervals — in `gamepad.config.py`. GPIO pins, PID gains, and speed limits are runtime settings via `ROVER_*` env (see [Environment](#environment)).
+
+When `ROVER_MODULES_MOTION_ENABLED=true`, the backend runs **steering calibration automatically** on startup (`core/startup.py`). Physical gamepad input requires both `ROVER_MODULES_GAMEPAD_ENABLED` and `ROVER_MODULES_MOTION_ENABLED`.
 
 ---
 
@@ -67,29 +81,107 @@ Both backend and frontend read from a **single root `.env` file**:
 cp .env.example .env
 ```
 
-| Variable | Default | Used by | Description |
-|----------|---------|---------|-------------|
-| `ROVER_MODULES_POWER_ENABLED` | `false` | backend | INA219 power module |
-| `ROVER_MODULES_MOTION_ENABLED` | `false` | backend | TB6612FNG motion module |
-| `ROVER_MODULES_THERMAL_ENABLED` | `false` | backend | DS18B20 thermal module |
-| `ROVER_MODULES_IMU_ENABLED` | `false` | backend | MPU6050 IMU module |
-| `ROVER_MODULES_LIGHT_ENABLED` | `false` | backend | BH1750 light module |
-| `ROVER_MODULES_CAMERA_ENABLED` | `false` | backend | MediaMTX camera integration |
-| `ROVER_LOG_LEVEL` | `INFO` | backend | Logging level |
-| `ROVER_I2C_BUS` | `1` | backend | I2C bus number |
-| `ROVER_W1_GPIO` | `4` | backend | 1-Wire GPIO pin |
-| `ROVER_WS_TELEMETRY_HZ` | `20` | backend | WebSocket telemetry rate |
-| `ROVER_HEARTBEAT_TIMEOUT_SEC` | `1.0` | backend | Watchdog heartbeat timeout |
-| `ROVER_IO_RETRY_DELAY_SEC` | `2.0` | backend | Hardware I/O retry delay |
-| `ROVER_MEDIAMTX_API_URL` | `http://mediamtx:9997` | backend | MediaMTX control API (Docker service name) |
-| `VITE_RPI_HOST` | `localhost` | frontend | Dev server proxy target; production WebRTC fallback |
-| `VITE_API_PORT` | `8000` | frontend | Dev server proxy target |
-| `VITE_WEBRTC_PORT` | `8889` | frontend | MediaMTX WebRTC (WHEP) port in the browser |
+### Feature flags
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROVER_MODULES_POWER_ENABLED` | `false` | INA219 power module |
+| `ROVER_MODULES_MOTION_ENABLED` | `false` | Motion module (LEGO Control+ + TB6612FNG) |
+| `ROVER_MODULES_GAMEPAD_ENABLED` | `false` | Physical gamepad via evdev |
+| `ROVER_MODULES_THERMAL_ENABLED` | `false` | DS18B20 thermal module |
+| `ROVER_MODULES_IMU_ENABLED` | `false` | MPU6050 IMU module |
+| `ROVER_MODULES_LIGHT_ENABLED` | `false` | BH1750 light module |
+| `ROVER_MODULES_CAMERA_ENABLED` | `false` | MediaMTX camera integration |
+| `ROVER_MODULES_BLUETOOTH_ENABLED` | `false` | Bluetooth pairing module |
 
 Backend loads `ROVER_*` via pydantic-settings (`backend/core/config.py`).  
 Frontend loads `VITE_*` via Vite with `envDir` pointing at the repo root (`frontend/vite.config.ts`).
 
 > **Note:** `VITE_*` variables are embedded at **build time**. After changing them, rebuild the frontend (`npm run build` or `docker compose build frontend`).
+
+On the Pi or in Docker, optional `.env.local` overrides `.env` without touching git-tracked files.
+
+### Motion & pigpio
+
+Motion hardware talks to a **pigpio daemon** (sidecar in Docker). The backend is a Python pigpio client only — no direct GPIO in the app process.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROVER_PIGPIO_HOST` | `pigpiod` | pigpio daemon hostname (Docker service name) |
+| `ROVER_PIGPIO_PORT` | `8888` | pigpio daemon TCP port |
+| `ROVER_MOTION_FRONT_PWMA_GPIO` | `18` | Front drive — PWM pin (TB6612FNG PWMA) |
+| `ROVER_MOTION_FRONT_AIN1_GPIO` | `23` | Front drive — direction AIN1 |
+| `ROVER_MOTION_FRONT_AIN2_GPIO` | `24` | Front drive — direction AIN2 |
+| `ROVER_MOTION_FRONT_TACHO_A_GPIO` | `17` | Front drive — encoder channel A |
+| `ROVER_MOTION_FRONT_TACHO_B_GPIO` | `27` | Front drive — encoder channel B |
+| `ROVER_MOTION_REAR_PWMA_GPIO` | `12` | Rear drive — PWM pin |
+| `ROVER_MOTION_REAR_AIN1_GPIO` | `16` | Rear drive — direction AIN1 |
+| `ROVER_MOTION_REAR_AIN2_GPIO` | `20` | Rear drive — direction AIN2 |
+| `ROVER_MOTION_REAR_TACHO_A_GPIO` | `5` | Rear drive — encoder channel A |
+| `ROVER_MOTION_REAR_TACHO_B_GPIO` | `6` | Rear drive — encoder channel B |
+| `ROVER_MOTION_STEER_PWMA_GPIO` | `13` | Steering — PWM pin |
+| `ROVER_MOTION_STEER_AIN1_GPIO` | `19` | Steering — direction AIN1 |
+| `ROVER_MOTION_STEER_AIN2_GPIO` | `26` | Steering — direction AIN2 |
+| `ROVER_MOTION_STEER_TACHO_A_GPIO` | `21` | Steering — encoder channel A |
+| `ROVER_MOTION_STEER_TACHO_B_GPIO` | `22` | Steering — encoder channel B |
+| `ROVER_MOTION_MAX_SPEED_TICKS` | `800` | Max drive speed in encoder ticks/s at full throttle |
+| `ROVER_MOTION_STEER_MAX_DEG` | `45` | Maximum steering angle (°); used for UI, gamepad, and calibration span |
+| `ROVER_MOTION_PID_KP` | `0.8` | PID proportional gain (speed + position loops) |
+| `ROVER_MOTION_PID_KI` | `0.05` | PID integral gain |
+| `ROVER_MOTION_PID_KD` | `0.01` | PID derivative gain |
+
+Without pigpio or when the daemon is unreachable, motion falls back to **mock hardware** (useful for local dev).
+
+The backend reads `/dev/input/event*` for gamepad hotplug. In Docker, `/dev/input` is mounted into the backend container. Evdev button/axis codes and poll rate are in `gamepad.config.py`, not env.
+
+### Global backend
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROVER_LOG_LEVEL` | `INFO` | Logging level |
+| `ROVER_HOST` | `0.0.0.0` | FastAPI bind address |
+| `ROVER_PORT` | `8000` | FastAPI port |
+| `ROVER_I2C_BUS` | `1` | Linux I2C bus number |
+| `ROVER_W1_GPIO` | `4` | 1-Wire GPIO pin (must match `dtoverlay=w1-gpio`) |
+| `ROVER_WS_TELEMETRY_HZ` | `20` | WebSocket telemetry broadcast rate (Hz) |
+| `ROVER_HEARTBEAT_TIMEOUT_SEC` | `1.0` | Watchdog heartbeat timeout |
+| `ROVER_IO_RETRY_DELAY_SEC` | `2.0` | Hardware I/O retry delay |
+
+### MediaMTX
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROVER_MEDIAMTX_API_URL` | `http://mediamtx:9997` | MediaMTX control API (Docker service name) |
+| `ROVER_MEDIAMTX_RECORD_START_PATH` | `/v3/recordings/start/{stream_path}` | Start recording API path template |
+| `ROVER_MEDIAMTX_RECORD_STOP_PATH` | `/v3/recordings/stop/{stream_path}` | Stop recording API path template |
+| `ROVER_MEDIAMTX_STREAM_CONFIG_PATH` | `/v3/config/paths/patch/{stream_path}` | Patch stream config path template |
+| `ROVER_MEDIAMTX_STREAM_CONFIG_GET_PATH` | `/v3/config/paths/get/{stream_path}` | Get stream config path template |
+
+### Hardware addresses & devices
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROVER_POWER_I2C_ADDRESS` | `0x40` | INA219 I2C address (hex or decimal) |
+| `ROVER_IMU_I2C_ADDRESS` | `0x68` | MPU6050 I2C address |
+| `ROVER_LIGHT_I2C_ADDRESS` | `0x23` | BH1750 I2C address |
+| `ROVER_W1_BASE_PATH` | `/sys/bus/w1/devices` | 1-Wire sysfs base path |
+| `ROVER_THERMAL_W1_SLAVE_FILE` | `w1_slave` | Filename inside each sensor directory |
+| `ROVER_THERMAL_SENSOR_IDS` | *(JSON map)* | DS18B20 ROM IDs keyed by sensor name |
+| `ROVER_CAMERA_V4L2_DEVICE` | `/dev/video0` | Camera V4L2 device |
+| `ROVER_CAMERA_V4L2_CTL_BIN` | `v4l2-ctl` | Path to `v4l2-ctl` binary |
+| `ROVER_CAMERA_STREAM_PATH` | `rover` | MediaMTX stream path name |
+
+### Frontend (build-time)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_RPI_HOST` | `localhost` | Dev server proxy target; production WebRTC fallback |
+| `VITE_API_PORT` | `8000` | Dev server proxy target for REST/WebSocket |
+| `VITE_WEBRTC_PORT` | `8889` | MediaMTX WebRTC (WHEP) port in the browser |
+
+### Docker / OTA (production)
+
+See [Environment variables (OTA)](#environment-variables-ota) for `ROVER_OTA_*`, `IMAGE_TAG`, GHCR registry, and per-service image tags. Compose also uses `PIGPIOD_IMAGE` (default `zinen2/alpine-pigpiod:pigpio-v79`) for the GPIO sidecar.
 
 ## Backend — quick start
 
@@ -111,7 +203,7 @@ uv run --project backend pre-commit install
 
 ## Frontend
 
-React 19 SPA for driving the rover: live video (WebRTC), telemetry OSD, dashboard controls, keyboard and gamepad input.
+React 19 SPA for driving the rover: live video (WebRTC), telemetry OSD, on-screen throttle/steer levers, keyboard shortcuts, light and camera controls. Physical gamepads are handled on the **backend** (evdev); the UI shows connection status via `telemetry.gamepad`.
 
 **Stack:** React 19, TypeScript, Vite 8, Tailwind CSS 4, Zustand, Zod, Axios.
 
@@ -157,7 +249,7 @@ When deploying on a Pi or via Docker, REST and WebSocket use nginx on port 80 (`
 
 | | Backend | Frontend |
 |---|---------|----------|
-| Endpoint | `GET /config` | `fetchConfig()` in `frontend/src/api/config.ts` |
+| Endpoint | `GET /config` | `fetchConfig()` in `frontend/src/api/http.ts` |
 | Schema | `backend/core/schemas/config.py` → `ConfigResponse` | `frontend/src/types/schemas.ts` → `ConfigResponseSchema` |
 | Types | OpenAPI (`/openapi.json`) | `frontend/src/types/contracts.ts` |
 
@@ -181,14 +273,19 @@ When deploying on a Pi or via Docker, REST and WebSocket use nginx on port 80 (`
 |---|---------|----------|
 | Endpoint | `WS /ws` | `frontend/src/api/websocket.ts` |
 | Server → client | `backend/modules/<name>/<name>.schema.py`, `backend/api/schemas/telemetry.py`, `errors.py` | `TelemetryMessageSchema`, `ErrorMessageSchema` |
-| Client → server | `backend/modules/<name>/<name>.schema.py`, `backend/api/schemas/commands.py` | `ClientCommandSchema` (+ `sendMove`, `sendBrightness`, `sendRecord`) |
+| Client → server | `backend/modules/<name>/<name>.schema.py`, `backend/api/schemas/commands.py` | `ClientCommandSchema` (`sendMove`, `sendCalibrate`, `sendBrightness`) |
 | Docs | `GET /ws-protocol` | — |
 
 **Message types (must stay in sync):**
 
-- **Telemetry** (20 Hz): `{ type: "telemetry", modules: { power?, motion?, light?, thermal?, imu? } }`
-- **Commands:** `heartbeat` (every 500 ms), `move`, `set_brightness`, `record`
+- **Telemetry** (default 20 Hz via `ROVER_WS_TELEMETRY_HZ`): `{ type: "telemetry", modules: { power?, motion?, light?, thermal?, imu?, bluetooth?, gamepad? } }`
+- **Commands (frontend):** `heartbeat` (every 500 ms), `move` (`throttle` −100…100, `steer_deg` absolute), `calibrate` (steering homing), `set_brightness`
+- **Commands (backend only today):** `record` — accepted by the backend and documented at `GET /ws-protocol`; not yet sent from the UI
 - **Errors:** `{ type: "error", message: string }`
+
+Motion control from the UI, keyboard, or physical gamepad converges on the same backend path: `command.control` → motion module. The frontend uses optimistic UI for levers and reconciles from `telemetry.motion`.
+
+> **Note:** `STEER_MAX_DEG` in `frontend/src/constants.ts` is hardcoded (default 45°) and is not yet exposed via `GET /config`. Keep it aligned with `ROVER_MOTION_STEER_MAX_DEG` when you change steering limits.
 
 Backend validates incoming commands with Pydantic; the frontend validates outbound commands with Zod before sending.
 
@@ -206,7 +303,7 @@ Use `GET /ws-protocol` on a running backend to inspect the documented JSON shape
 Video does not go through the FastAPI backend. MediaMTX serves the stream; the frontend connects via WHEP:
 
 - Stream path: `rover` (see `infra/mediamtx/mediamtx.yml`)
-- Frontend: `POST http://{VITE_RPI_HOST}:{VITE_WEBRTC_PORT}/rover/whep` (`frontend/src/api/webrtc.ts`)
+- Frontend: `POST http://{host}:{VITE_WEBRTC_PORT}/rover/whep` — in dev `{host}` is `VITE_RPI_HOST`; in production it is `window.location.hostname` (`frontend/src/api/env.ts`, `frontend/src/api/webrtc.ts`)
 - Backend camera module controls recording via `ROVER_MEDIAMTX_API_URL`
 
 Keep `VITE_WEBRTC_PORT` aligned with MediaMTX `webrtcAddress` (default **8889**).
@@ -232,14 +329,15 @@ docker compose up --build
 
 | Service | Port(s) | Role |
 |---------|---------|------|
+| `pigpiod` | 8888 (internal) | pigpio daemon — GPIO/PWM for motion motors |
 | `backend` | 8000 | FastAPI, hardware modules |
 | `frontend` | 3000 | Static SPA (Caddy) |
 | `nginx` | 80 | Reverse proxy: `/` → frontend, `/api/` and `/ws` → backend |
-| `mediamtx` | 8554, 8889, 9997 | RTSP, WebRTC, control API (custom build for Arducam/Pivariety via RPi libcamera) |
+| `mediamtx` | 8554, 8889, 8189/udp, 9997 | RTSP, WebRTC, ICE UDP, control API (custom build for Arducam/Pivariety via RPi libcamera) |
 
 Both `backend` and `frontend` services mount the root `.env`. Frontend build args (`VITE_*`) are passed from the same file at image build time. `mediamtx` is built from [`infra/mediamtx/Dockerfile`](infra/mediamtx/Dockerfile) locally; production pulls a pre-built image from GHCR (see [OTA updates](#ota-updates-production)).
 
-Pi device mounts (`/dev/i2c-1`, `/dev/video0`, 1-Wire) are configured in [`docker-compose.yml`](docker-compose.yml) for the backend service.
+Pi device mounts in [`docker-compose.yml`](docker-compose.yml): `/dev/i2c-1`, `/dev/video0`, `/dev/input` (gamepad), `/sys/bus/w1` (1-Wire), `/dev/gpiochip0` (pigpiod sidecar). The `pigpiod` image is pulled from Docker Hub (`PIGPIOD_IMAGE`), not GHCR.
 
 Production UI on port 80: REST → `/api`, WebSocket → `/ws` (via nginx). WebRTC/WHEP → `http://<pi-ip>:8889/rover/whep` in the browser.
 
@@ -307,7 +405,11 @@ ls /sys/bus/w1
 
 `gpiopin=4` matches the default `ROVER_W1_GPIO=4` in `.env.example`.
 
-#### 4. SSH deploy key
+#### 4. Motion and gamepad (optional)
+
+If you enable motion or gamepad modules, Docker Compose starts a **pigpiod** sidecar and mounts `/dev/gpiochip0` (GPIO/PWM) and `/dev/input` (evdev gamepads). No extra host packages are required beyond Docker — the backend installs the pigpio Python client in its image.
+
+#### 5. SSH deploy key
 
 Bootstrap can generate one interactively, or configure manually:
 
@@ -328,7 +430,7 @@ Host github.com
 
 With `./scripts/bootstrap.sh`, the script generates the key at `$HOME/.ssh/fpv_rover_deploy` (current user) only if it does not already exist. When a new key is created, it pauses to show the public key and waits for you to add it in GitHub. If the key already exists, it is reused and this prompt is skipped.
 
-#### 5. GHCR login (only if images are private)
+#### 6. GHCR login (only if images are private)
 
 ```bash
 echo "$GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
@@ -354,6 +456,8 @@ Before pulling images, bootstrap **pauses** so you can edit env interactively (o
 Example `.env.local` (do **not** copy the full `.env.example` — `.env.local` overrides `.env` and would reset OTA settings to example defaults):
 
 ```
+ROVER_MODULES_MOTION_ENABLED=true
+ROVER_MODULES_GAMEPAD_ENABLED=true
 ROVER_MODULES_CAMERA_ENABLED=true
 ROVER_THERMAL_SENSOR_IDS={"motor_steering":"28-..."}
 ```
