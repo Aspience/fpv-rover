@@ -6,7 +6,6 @@ _dir = Path(__file__).parent
 _pkg = __name__
 
 config = load_dotted_submodule(_pkg, _dir, "config")
+utils = load_dotted_submodule(_pkg, _dir, "utils")
 schema = load_dotted_submodule(_pkg, _dir, "schema")
-control = load_dotted_submodule(_pkg, _dir, "control")
-service = load_dotted_submodule(_pkg, _dir, "service")
 module = load_dotted_submodule(_pkg, _dir, "module")

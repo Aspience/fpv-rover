@@ -15,6 +15,7 @@ from core.config import get_settings
 from core.event_bus import EventBus
 from core.ota_state import complete_update_on_startup
 from core.registry import ModuleRegistry
+from core.startup import run_post_init
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     complete_update_on_startup(settings.ota_install_dir)
     await hub.start()
     await registry.start_enabled()
+    await run_post_init(event_bus, settings)
 
     yield
 

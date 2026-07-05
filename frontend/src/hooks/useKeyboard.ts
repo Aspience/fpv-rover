@@ -3,12 +3,13 @@ import { useEffect } from 'react'
 import { sendMove } from '@/api/websocket'
 import { useControlStore } from '@/store/controlStore'
 import { useSystemStore } from '@/store/systemStore'
-import { CONTROL_SEND_HZ } from '@/constants'
-import { computePwm } from '@/utils'
+import { CONTROL_SEND_HZ, STEER_MAX_DEG, THROTTLE_MAX } from '@/constants'
 
 export const useKeyboard = (): void => {
   const motionEnabled = useSystemStore((s) => s.modules.motion)
-  const setPwm = useControlStore((s) => s.setPwm)
+  const setThrottleLocal = useControlStore((s) => s.setThrottleLocal)
+  const setSteerDegLocal = useControlStore((s) => s.setSteerDegLocal)
+  const steerDegLocal = useControlStore((s) => s.steerDegLocal)
 
   useEffect(() => {
     if (!motionEnabled) return
@@ -25,8 +26,8 @@ export const useKeyboard = (): void => {
 
     const onBlur = () => {
       pressed.clear()
-      setPwm(0, 0)
-      sendMove(0, 0)
+      setThrottleLocal(0, steerDegLocal)
+      sendMove(0, steerDegLocal)
     }
 
     window.addEventListener('keydown', onKeyDown)
@@ -34,9 +35,24 @@ export const useKeyboard = (): void => {
     window.addEventListener('blur', onBlur)
 
     const intervalId = window.setInterval(() => {
-      const { left, right } = computePwm(pressed)
-      setPwm(left, right)
-      sendMove(left, right)
+      let throttle = 0
+      let steer = steerDegLocal
+
+      if (pressed.has('w') || pressed.has('arrowup')) throttle = THROTTLE_MAX
+      if (pressed.has('s') || pressed.has('arrowdown')) throttle = -THROTTLE_MAX
+      if (pressed.has('a') || pressed.has('arrowleft')) steer = -STEER_MAX_DEG
+      if (pressed.has('d') || pressed.has('arrowright')) steer = STEER_MAX_DEG
+      if (
+        !pressed.has('a') &&
+        !pressed.has('arrowleft') &&
+        !pressed.has('d') &&
+        !pressed.has('arrowright')
+      ) {
+        steer = 0
+      }
+
+      setThrottleLocal(throttle, steer)
+      setSteerDegLocal(steer, throttle)
     }, 1000 / CONTROL_SEND_HZ)
 
     return () => {
@@ -45,5 +61,5 @@ export const useKeyboard = (): void => {
       window.removeEventListener('blur', onBlur)
       window.clearInterval(intervalId)
     }
-  }, [motionEnabled, setPwm])
+  }, [motionEnabled, setSteerDegLocal, setThrottleLocal, steerDegLocal])
 }

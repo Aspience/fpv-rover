@@ -90,13 +90,16 @@ class WebSocketClient {
 
 export const wsClient = new WebSocketClient()
 
-export const sendMove = (pwmLeft: number, pwmRight: number, steer = 0): void => {
+export const sendMove = (throttle: number, steerDeg = 0): void => {
   wsClient.send({
     cmd: 'move',
-    pwm_left: pwmLeft,
-    pwm_right: pwmRight,
-    steer,
+    throttle,
+    steer_deg: steerDeg,
   })
+}
+
+export const sendCalibrate = (): void => {
+  wsClient.send({ cmd: 'calibrate' })
 }
 
 export const sendBrightness = (level: number): void => {

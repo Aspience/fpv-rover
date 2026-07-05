@@ -43,6 +43,13 @@
   "otaUpdateInProgress": "Обновление в процессе…",
   "otaUpdateFailedLog": "Обновление не удалось или истекло время ожидания",
   "otaRetry": "Повторить",
+  "throttleLever": "Ход",
+  "steerLever": "Поворот",
+  "calibrateSteering": "Калибровка руля",
+  "calibrating": "Калибровка…",
+  "calibrationStarted": "Калибровка руля началась",
+  "calibrationFinished": "Калибровка руля завершена",
+  "calibrationFailed": "Ошибка калибровки руля",
   "thermal": {
     "motor_steering": "Рулевой",
     "motor_front": "Передний",

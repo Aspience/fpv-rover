@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from modules.camera.schema import RecordCommand
 from modules.light.schema import SetBrightnessCommand
-from modules.motion.schema import MoveCommand
+from modules.motion.schema import CalibrateCommand, MoveCommand
 
 
 class HeartbeatCommand(BaseModel):
@@ -18,6 +18,6 @@ class HeartbeatCommand(BaseModel):
 
 
 ClientCommand = Annotated[
-    HeartbeatCommand | MoveCommand | SetBrightnessCommand | RecordCommand,
+    HeartbeatCommand | MoveCommand | CalibrateCommand | SetBrightnessCommand | RecordCommand,
     Field(discriminator="cmd"),
 ]

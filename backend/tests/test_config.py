@@ -12,6 +12,8 @@ def test_default_feature_flags_are_disabled() -> None:
         "imu": False,
         "light": False,
         "camera": False,
+        "bluetooth": False,
+        "gamepad": False,
     }
 
 
@@ -68,7 +70,10 @@ def test_hardware_values_from_env_example() -> None:
     assert settings.ota_enabled is False
     assert settings.ota_install_dir == "/opt/fpv-rover"
     assert settings.ota_script == "/opt/fpv-rover/scripts/ota_update.sh"
-    assert settings.ota_ssh_key_path == ""
+    assert settings.motion_front_pwma_gpio == 18
+    assert settings.pigpio_host == "pigpiod"
+    assert settings.pigpio_port == 8888
+    assert settings.motion_steer_max_deg == 45.0
 
 
 def test_i2c_address_accepts_hex_string(monkeypatch: pytest.MonkeyPatch) -> None:

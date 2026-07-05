@@ -4,19 +4,37 @@ import { useTranslation } from 'react-i18next'
 
 import { useAppBootstrapQuery, useConfigQuery } from '@/api/queries'
 import { wsClient } from '@/api/websocket'
-import { AppLoader, EventLog, Light, OSD, OtaUpdatingOverlay, Settings, StatusBar, VideoPlayer } from '@/components/common'
+import {
+  AppLoader,
+  EventLog,
+  Light,
+  MotionControls,
+  OSD,
+  OtaUpdatingOverlay,
+  Settings,
+  StatusBar,
+  VideoPlayer,
+} from '@/components/common'
 import { Button } from '@/components/ui'
-import { useBluetoothStatusLog, useConnectionLostLog, useGamepad, useKeyboard, useOtaUpdater, useStartupLog, useUpdateCheckLog } from '@/hooks'
+import {
+  useBluetoothStatusLog,
+  useCalibrationLog,
+  useConnectionLostLog,
+  useKeyboard,
+  useOtaUpdater,
+  useStartupLog,
+  useUpdateCheckLog,
+} from '@/hooks'
 import { useLogStore } from '@/store/logStore'
 import { useSystemStore } from '@/store/systemStore'
 
 const App = () => {
   const { isSuccess: appReady } = useAppBootstrapQuery()
-  useGamepad()
   useKeyboard()
   useStartupLog()
   useConnectionLostLog()
   useBluetoothStatusLog()
+  useCalibrationLog()
   useUpdateCheckLog()
   useOtaUpdater()
   useConfigQuery()
@@ -24,6 +42,7 @@ const App = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [eventLogOpen, setEventLogOpen] = useState(false)
   const lightEnabled = useSystemStore((s) => s.modules.light)
+  const motionEnabled = useSystemStore((s) => s.modules.motion)
   const hasUnread = useLogStore((s) => s.entries.some((e) => e.timestamp > s.lastReadAt))
 
   useEffect(() => {
@@ -71,6 +90,7 @@ const App = () => {
       {lightEnabled && (
         <Light className="absolute bottom-4 left-1/2 z-dashboard -translate-x-1/2" />
       )}
+      {motionEnabled && <MotionControls />}
       <OtaUpdatingOverlay />
     </main>
   )

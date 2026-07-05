@@ -46,6 +46,10 @@ class ModuleRegistry:
             from modules.bluetooth.module import BluetoothModule
 
             return BluetoothModule(self.event_bus, self.settings)
+        if name == "gamepad":
+            from modules.gamepad.module import GamepadModule
+
+            return GamepadModule(self.event_bus, self.settings)
         raise KeyError(f"Unknown module: {name}")
 
     async def start_enabled(self) -> None:
