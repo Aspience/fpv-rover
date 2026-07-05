@@ -12,6 +12,7 @@ dependencies = [
     "uvicorn[standard]>=0.49.0",
     "websockets>=16.0",
     "evdev>=1.7; sys_platform == 'linux'",
+    "pigpio>=1.78; sys_platform == 'linux'",
 ]
 
 [project.scripts]
