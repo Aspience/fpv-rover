@@ -20,7 +20,8 @@ from core.config import Topics, get_settings
 from core.event_bus import EventBus
 from modules.camera.schema import RecordCommand
 from modules.light.schema import SetBrightnessCommand
-from modules.motion.schema import MoveCommand
+from modules.motion.control import dispatch_control
+from modules.motion.schema import CalibrateCommand, MoveCommand
 
 logger = logging.getLogger(__name__)
 
@@ -97,14 +98,15 @@ class TelemetryHub:
             return
 
         if isinstance(command, MoveCommand):
-            await self.event_bus.publish(
-                Topics.COMMAND_CONTROL,
-                {
-                    "pwm_left": command.pwm_left,
-                    "pwm_right": command.pwm_right,
-                    "steer": command.steer,
-                },
+            await dispatch_control(
+                self.event_bus,
+                throttle=command.throttle,
+                steer_deg=command.steer_deg,
             )
+            return
+
+        if isinstance(command, CalibrateCommand):
+            await self.event_bus.publish(Topics.COMMAND_CALIBRATE, {"source": "frontend"})
             return
 
         if isinstance(command, SetBrightnessCommand):

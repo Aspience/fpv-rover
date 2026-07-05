@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any
 
-from pydantic import BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +37,14 @@ def _parse_int_maybe_hex(value: Any) -> int:
 HexInt = Annotated[int, BeforeValidator(_parse_int_maybe_hex)]
 
 
+class MotorGpioConfig(BaseModel):
+    pwma: int
+    ain1: int
+    ain2: int
+    tacho_a: int
+    tacho_b: int
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="ROVER_",
@@ -52,6 +60,36 @@ class Settings(BaseSettings):
     modules_light_enabled: bool
     modules_camera_enabled: bool
     modules_bluetooth_enabled: bool
+    modules_gamepad_enabled: bool
+
+    pigpio_host: str
+    pigpio_port: int = Field(gt=0, le=65535)
+
+    motion_front_pwma_gpio: int
+    motion_front_ain1_gpio: int
+    motion_front_ain2_gpio: int
+    motion_front_tacho_a_gpio: int
+    motion_front_tacho_b_gpio: int
+
+    motion_rear_pwma_gpio: int
+    motion_rear_ain1_gpio: int
+    motion_rear_ain2_gpio: int
+    motion_rear_tacho_a_gpio: int
+    motion_rear_tacho_b_gpio: int
+
+    motion_steer_pwma_gpio: int
+    motion_steer_ain1_gpio: int
+    motion_steer_ain2_gpio: int
+    motion_steer_tacho_a_gpio: int
+    motion_steer_tacho_b_gpio: int
+
+    motion_max_speed_ticks: int = Field(gt=0)
+    motion_steer_max_deg: float = Field(gt=0)
+    motion_pid_kp: float = Field(ge=0)
+    motion_pid_ki: float = Field(ge=0)
+    motion_pid_kd: float = Field(ge=0)
+
+    gamepad_require_bluetooth: bool
 
     log_level: str
     host: str
@@ -90,6 +128,31 @@ class Settings(BaseSettings):
     ota_script: str
     ota_ssh_key_path: str
 
+    def motion_motors(self) -> dict[str, MotorGpioConfig]:
+        return {
+            "front": MotorGpioConfig(
+                pwma=self.motion_front_pwma_gpio,
+                ain1=self.motion_front_ain1_gpio,
+                ain2=self.motion_front_ain2_gpio,
+                tacho_a=self.motion_front_tacho_a_gpio,
+                tacho_b=self.motion_front_tacho_b_gpio,
+            ),
+            "rear": MotorGpioConfig(
+                pwma=self.motion_rear_pwma_gpio,
+                ain1=self.motion_rear_ain1_gpio,
+                ain2=self.motion_rear_ain2_gpio,
+                tacho_a=self.motion_rear_tacho_a_gpio,
+                tacho_b=self.motion_rear_tacho_b_gpio,
+            ),
+            "steer": MotorGpioConfig(
+                pwma=self.motion_steer_pwma_gpio,
+                ain1=self.motion_steer_ain1_gpio,
+                ain2=self.motion_steer_ain2_gpio,
+                tacho_a=self.motion_steer_tacho_a_gpio,
+                tacho_b=self.motion_steer_tacho_b_gpio,
+            ),
+        }
+
     def enabled_modules(self) -> dict[str, bool]:
         return {
             "power": self.modules_power_enabled,
@@ -99,6 +162,7 @@ class Settings(BaseSettings):
             "light": self.modules_light_enabled,
             "camera": self.modules_camera_enabled,
             "bluetooth": self.modules_bluetooth_enabled,
+            "gamepad": self.modules_gamepad_enabled,
         }
 
 
@@ -115,6 +179,7 @@ class Topics:
     TELEMETRY_PREFIX = "telemetry."
     COMMAND_PREFIX = "command."
     COMMAND_CONTROL = "command.control"
+    COMMAND_CALIBRATE = "command.calibrate"
     COMMAND_LIGHT = "command.light"
     SYSTEM_EMERGENCY_STOP = "system.emergency_stop"
     CAMERA_RECORD_START = "camera.record_start"

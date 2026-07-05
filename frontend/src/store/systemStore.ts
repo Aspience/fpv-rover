@@ -26,6 +26,7 @@ const defaultModules: ModulesConfig = {
   light: false,
   camera: false,
   bluetooth: false,
+  gamepad: false,
 }
 
 export const useSystemStore = create<SystemState>((set) => ({

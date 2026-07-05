@@ -6,6 +6,7 @@ export interface ModulesConfig {
   light: boolean
   camera: boolean
   bluetooth: boolean
+  gamepad: boolean
 }
 
 export interface ConfigResponse {
@@ -59,6 +60,18 @@ export interface PowerData {
 
 export interface MotionData {
   steering_pos: number
+  throttle_applied: number
+  steer_deg_applied: number
+  calibrating: boolean
+  calibration_error: string | null
+  front_speed: number
+  rear_speed: number
+}
+
+export interface GamepadData {
+  connected: boolean
+  name: string | null
+  device_path: string | null
 }
 
 export interface LightData {
@@ -104,6 +117,7 @@ export interface TelemetryModules {
   thermal?: ThermalData
   imu?: ImuData
   bluetooth?: BluetoothData
+  gamepad?: GamepadData
 }
 
 export interface TelemetryMessage {
@@ -121,9 +135,12 @@ export interface HeartbeatCommand {
 
 export interface MoveCommand {
   cmd: 'move'
-  pwm_left: number
-  pwm_right: number
-  steer?: number
+  throttle: number
+  steer_deg?: number
+}
+
+export interface CalibrateCommand {
+  cmd: 'calibrate'
 }
 
 export interface SetBrightnessCommand {
@@ -134,6 +151,7 @@ export interface SetBrightnessCommand {
 export type ClientCommand =
   | HeartbeatCommand
   | MoveCommand
+  | CalibrateCommand
   | SetBrightnessCommand
 
 export interface ErrorMessage {

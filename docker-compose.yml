@@ -1,14 +1,26 @@
 services:
+  pigpiod:
+    image: ${PIGPIOD_IMAGE:-zinen2/alpine-pigpiod:pigpio-v79}
+    restart: unless-stopped
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0
+    group_add:
+      - gpio
+
   backend:
     build:
       context: backend
       dockerfile: Dockerfile
       args:
         ROVER_APP_VERSION: ${ROVER_APP_VERSION:-dev}
+    depends_on:
+      - pigpiod
     environment:
       BACKEND_IMAGE_TAG: ${BACKEND_IMAGE_TAG:-${IMAGE_TAG:-dev}}
       FRONTEND_IMAGE_TAG: ${FRONTEND_IMAGE_TAG:-${IMAGE_TAG:-dev}}
       MEDIAMTX_IMAGE_TAG: ${MEDIAMTX_IMAGE_TAG:-${IMAGE_TAG:-dev}}
+      ROVER_PIGPIO_HOST: pigpiod
+      ROVER_PIGPIO_PORT: "8888"
     env_file:
       - .env
       - path: .env.local
@@ -33,6 +45,8 @@ services:
       - /var/run/dbus:/var/run/dbus
       # Host network namespace, entered by bluetoothctl via nsenter.
       - /proc/1/ns/net:/rootns/net
+      # Gamepad evdev hotplug
+      - /dev/input:/dev/input
     restart: unless-stopped
 
   frontend:

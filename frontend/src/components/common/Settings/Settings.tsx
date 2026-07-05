@@ -11,9 +11,10 @@ import {
   useCameraStreamConfigQuery,
   useSetCameraStreamConfigMutation,
 } from '@/api/queries'
+import { sendCalibrate } from '@/api/websocket'
 import { Bluetooth } from '@/components/common/Bluetooth'
 import { OTAUpdater } from '@/components/common/OTAUpdater'
-import { Modal, Select, Tab, TabList, TabPanel, Tabs } from '@/components/ui'
+import { Button, Modal, Select, Tab, TabList, TabPanel, Tabs } from '@/components/ui'
 import type { SelectOption } from '@/components/ui'
 import {
   DEFAULT_BITRATE_BPS,
@@ -21,6 +22,7 @@ import {
   STREAM_RECONNECT_DELAY_MS,
 } from '@/constants'
 import { useSystemStore } from '@/store/systemStore'
+import { useTelemetryStore } from '@/store/telemetryStore'
 import {
   formatResolution,
   getCameraBitrateOptions,
@@ -41,6 +43,8 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
 
   const reconnectVideo = useSystemStore((state) => state.reconnectVideo)
   const bluetoothEnabled = useSystemStore((state) => state.modules.bluetooth)
+  const motionEnabled = useSystemStore((state) => state.modules.motion)
+  const calibrating = useTelemetryStore((state) => state.motion?.calibrating ?? false)
   const { mutate: applyStreamConfig } = useSetCameraStreamConfigMutation()
   const { data: streamConfig } = useCameraStreamConfigQuery(open)
 
@@ -138,6 +142,20 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
           </div>
 
           <OTAUpdater onInstallStart={onClose} />
+
+          {motionEnabled ? (
+            <div className="mt-3">
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={calibrating}
+                onClick={() => sendCalibrate()}
+              >
+                {calibrating ? t('calibrating') : t('calibrateSteering')}
+              </Button>
+            </div>
+          ) : null}
         </TabPanel>
 
         {bluetoothEnabled ? (

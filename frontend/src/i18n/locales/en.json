@@ -43,6 +43,13 @@
   "otaUpdateInProgress": "Update in progress…",
   "otaUpdateFailedLog": "Update failed or timed out",
   "otaRetry": "Retry",
+  "throttleLever": "Throttle",
+  "steerLever": "Steering",
+  "calibrateSteering": "Calibrate steering",
+  "calibrating": "Calibrating…",
+  "calibrationStarted": "Steering calibration started",
+  "calibrationFinished": "Steering calibration finished",
+  "calibrationFailed": "Steering calibration failed",
   "thermal": {
     "motor_steering": "Steering",
     "motor_front": "Front",

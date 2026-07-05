@@ -37,6 +37,13 @@ export const KEYBOARD_PWM = 80
 export const KEYBOARD_TURN_DELTA = 40
 /** Upper bound of the PWM / brightness scale. */
 export const PWM_MAX = 100
+export const THROTTLE_MIN = -100
+export const THROTTLE_MAX = 100
+export const STEER_MAX_DEG = 45
+/** Vibration pulse when a lever hits its min/max stop (ms). */
+export const HAPTIC_LIMIT_PULSE_MS = 40
+/** Vibration pulse when a lever returns to zero (ms). */
+export const HAPTIC_ZERO_PULSE_MS = 25
 export const BRIGHTNESS_MIN = 0
 export const BRIGHTNESS_MAX = 100
 

@@ -7,6 +7,18 @@ const powerDataSchema = z.object({
 
 const motionDataSchema = z.object({
   steering_pos: z.number(),
+  throttle_applied: z.number().default(0),
+  steer_deg_applied: z.number().default(0),
+  calibrating: z.boolean().default(false),
+  calibration_error: z.string().nullable().default(null),
+  front_speed: z.number().default(0),
+  rear_speed: z.number().default(0),
+})
+
+const gamepadDataSchema = z.object({
+  connected: z.boolean(),
+  name: z.string().nullable(),
+  device_path: z.string().nullable(),
 })
 
 const lightDataSchema = z.object({
@@ -46,6 +58,7 @@ export const TelemetryMessageSchema = z.object({
     thermal: thermalDataSchema.optional(),
     imu: imuDataSchema.optional(),
     bluetooth: bluetoothDataSchema.optional(),
+    gamepad: gamepadDataSchema.optional(),
   }),
 })
 
@@ -61,9 +74,12 @@ export const HeartbeatCommandSchema = z.object({
 
 export const MoveCommandSchema = z.object({
   cmd: z.literal('move'),
-  pwm_left: z.number().int().min(0).max(100),
-  pwm_right: z.number().int().min(0).max(100),
-  steer: z.number().min(-1).max(1).optional(),
+  throttle: z.number().int().min(-100).max(100),
+  steer_deg: z.number().optional(),
+})
+
+export const CalibrateCommandSchema = z.object({
+  cmd: z.literal('calibrate'),
 })
 
 export const SetBrightnessCommandSchema = z.object({
@@ -74,6 +90,7 @@ export const SetBrightnessCommandSchema = z.object({
 export const ClientCommandSchema = z.discriminatedUnion('cmd', [
   HeartbeatCommandSchema,
   MoveCommandSchema,
+  CalibrateCommandSchema,
   SetBrightnessCommandSchema,
 ])
 
@@ -86,6 +103,7 @@ export const ConfigResponseSchema = z.object({
     light: z.boolean(),
     camera: z.boolean(),
     bluetooth: z.boolean(),
+    gamepad: z.boolean(),
   }),
 })
 

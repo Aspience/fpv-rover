@@ -26,6 +26,7 @@ def test_get_config_returns_modules() -> None:
         "light",
         "camera",
         "bluetooth",
+        "gamepad",
     }
     for enabled in data["modules"].values():
         assert isinstance(enabled, bool)

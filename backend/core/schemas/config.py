@@ -13,6 +13,7 @@ class ModulesConfig(BaseModel):
     light: bool = False
     camera: bool = False
     bluetooth: bool = False
+    gamepad: bool = False
 
 
 class ConfigResponse(BaseModel):
