@@ -89,8 +89,6 @@ class Settings(BaseSettings):
     motion_pid_ki: float = Field(ge=0)
     motion_pid_kd: float = Field(ge=0)
 
-    gamepad_require_bluetooth: bool
-
     log_level: str
     host: str
     port: int = Field(gt=0, le=65535)

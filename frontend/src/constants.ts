@@ -29,14 +29,6 @@ export const PING_WARN_MS = 200
 // ── Control input ──────────────────────────────────────────────────────────
 /** How often control commands are pushed to the rover (Hz). */
 export const CONTROL_SEND_HZ = 20
-/** Gamepad analog stick deadzone (normalized 0..1). */
-export const GAMEPAD_DEADZONE = 0.1
-/** PWM applied when driving via keyboard. */
-export const KEYBOARD_PWM = 80
-/** PWM reduction on the inner track when turning via keyboard. */
-export const KEYBOARD_TURN_DELTA = 40
-/** Upper bound of the PWM / brightness scale. */
-export const PWM_MAX = 100
 export const THROTTLE_MIN = -100
 export const THROTTLE_MAX = 100
 export const STEER_MAX_DEG = 45
