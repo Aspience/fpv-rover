@@ -13,6 +13,12 @@
       "skillPath": "fastapi-python/SKILL.md",
       "computedHash": "4521c6090735152b7b8df670cefe5c1c6d1dcaa115de67bb96e74ebf802d4f24"
     },
+    "kicad": {
+      "source": "aklofas/kicad-happy",
+      "sourceType": "github",
+      "skillPath": "skills/kicad/SKILL.md",
+      "computedHash": "e287740087ee69bae5ef12a45e1e53fe68cefcf7f4afa9f12645e06ec08849df"
+    },
     "modern-python": {
       "source": "trailofbits/skills",
       "sourceType": "github",
