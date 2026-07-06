@@ -179,6 +179,7 @@ class Topics:
     COMMAND_CONTROL = "command.control"
     COMMAND_CALIBRATE = "command.calibrate"
     COMMAND_LIGHT = "command.light"
+    COMMAND_LIGHT_AUTO_NIGHT = "command.light.auto_night_mode"
     SYSTEM_EMERGENCY_STOP = "system.emergency_stop"
     CAMERA_RECORD_START = "camera.record_start"
     CAMERA_NIGHT_MODE = "camera.night_mode"

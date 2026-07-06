@@ -87,11 +87,18 @@ export const SetBrightnessCommandSchema = z.object({
   level: z.number().int().min(0).max(100),
 })
 
+export const SetAutoNightModeCommandSchema = z.object({
+  cmd: z.literal('set_auto_night_mode'),
+  enabled: z.boolean(),
+  threshold_lux: z.number().min(1).max(65535),
+})
+
 export const ClientCommandSchema = z.discriminatedUnion('cmd', [
   HeartbeatCommandSchema,
   MoveCommandSchema,
   CalibrateCommandSchema,
   SetBrightnessCommandSchema,
+  SetAutoNightModeCommandSchema,
 ])
 
 export const ConfigResponseSchema = z.object({

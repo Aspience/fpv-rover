@@ -105,3 +105,11 @@ export const sendCalibrate = (): void => {
 export const sendBrightness = (level: number): void => {
   wsClient.send({ cmd: 'set_brightness', level })
 }
+
+export const sendAutoNightMode = (enabled: boolean, thresholdLux: number): void => {
+  wsClient.send({
+    cmd: 'set_auto_night_mode',
+    enabled,
+    threshold_lux: thresholdLux,
+  })
+}
