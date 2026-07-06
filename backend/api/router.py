@@ -28,6 +28,7 @@ Real-time telemetry (rate set by `ROVER_WS_TELEMETRY_HZ`, default 20 Hz) and com
 - `MoveCommand` — throttle (−100…100) and absolute steer angle (`steer_deg`)
 - `CalibrateCommand` — steering homing / encoder calibration
 - `SetBrightnessCommand` — headlight level (0-100)
+- `SetAutoNightModeCommand` — automatic camera night mode from ambient lux
 - `RecordCommand` — start/stop camera recording (backend only today; no UI sender)
 
 See `GET /ws-protocol` for JSON Schema definitions.

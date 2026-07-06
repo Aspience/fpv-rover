@@ -1,5 +1,6 @@
 export { Button } from './Button'
 export { Badge } from './Badge'
+export { Checkbox } from './Checkbox'
 export { Slider } from './Slider'
 export { Modal } from './Modal'
 export { Select } from './Select'

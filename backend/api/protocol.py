@@ -11,7 +11,7 @@ from api.schemas.commands import HeartbeatCommand
 from api.schemas.errors import ErrorMessage
 from api.schemas.telemetry import TelemetryMessage
 from modules.camera.schema import RecordCommand
-from modules.light.schema import SetBrightnessCommand
+from modules.light.schema import SetAutoNightModeCommand, SetBrightnessCommand
 from modules.motion.schema import CalibrateCommand, MoveCommand
 
 router = APIRouter()
@@ -28,6 +28,7 @@ class WsProtocolDocument(BaseModel):
     move: MoveCommand
     calibrate: CalibrateCommand
     set_brightness: SetBrightnessCommand
+    set_auto_night_mode: SetAutoNightModeCommand
     record: RecordCommand
     error: ErrorMessage
 
@@ -40,6 +41,11 @@ async def get_ws_protocol() -> WsProtocolDocument:
         move=MoveCommand(cmd="move", throttle=0, steer_deg=0.0),
         calibrate=CalibrateCommand(cmd="calibrate"),
         set_brightness=SetBrightnessCommand(cmd="set_brightness", level=0),
+        set_auto_night_mode=SetAutoNightModeCommand(
+            cmd="set_auto_night_mode",
+            enabled=False,
+            threshold_lux=10.0,
+        ),
         record=RecordCommand(cmd="record", state="start"),
         error=ErrorMessage(message="example"),
     )

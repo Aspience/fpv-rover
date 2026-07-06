@@ -14,3 +14,9 @@ class LightData(BaseModel):
 class SetBrightnessCommand(BaseModel):
     cmd: Literal["set_brightness"]
     level: Annotated[int, Field(ge=0, le=100)]
+
+
+class SetAutoNightModeCommand(BaseModel):
+    cmd: Literal["set_auto_night_mode"]
+    enabled: bool
+    threshold_lux: Annotated[float, Field(ge=1, le=65535)]

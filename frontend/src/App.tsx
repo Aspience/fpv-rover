@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui'
 import {
   useBluetoothStatusLog,
+  useAutoNightModeSync,
   useCalibrationLog,
   useConnectionLostLog,
   useKeyboard,
@@ -34,6 +35,7 @@ const App = () => {
   useStartupLog()
   useConnectionLostLog()
   useBluetoothStatusLog()
+  useAutoNightModeSync()
   useCalibrationLog()
   useUpdateCheckLog()
   useOtaUpdater()
