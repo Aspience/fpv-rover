@@ -11,14 +11,16 @@ import {
   useCameraStreamConfigQuery,
   useSetCameraStreamConfigMutation,
 } from '@/api/queries'
-import { sendCalibrate } from '@/api/websocket'
+import { sendAutoNightMode, sendCalibrate } from '@/api/websocket'
 import { Bluetooth } from '@/components/common/Bluetooth'
 import { OTAUpdater } from '@/components/common/OTAUpdater'
-import { Button, Modal, Select, Tab, TabList, TabPanel, Tabs } from '@/components/ui'
+import { Button, Checkbox, Modal, Select, Slider, Tab, TabList, TabPanel, Tabs } from '@/components/ui'
 import type { SelectOption } from '@/components/ui'
 import {
   DEFAULT_BITRATE_BPS,
   DEFAULT_RESOLUTION,
+  NIGHT_MODE_THRESHOLD_MAX,
+  NIGHT_MODE_THRESHOLD_MIN,
   STREAM_RECONNECT_DELAY_MS,
 } from '@/constants'
 import { useSystemStore } from '@/store/systemStore'
@@ -29,6 +31,11 @@ import {
   getCameraResolutionOptions,
   parseResolution,
 } from '@/utils'
+import {
+  getAutoNightModePreference,
+  setAutoNightModePreference,
+  type AutoNightModePreference,
+} from '@/utils/autoNightMode'
 
 interface SettingsProps {
   open: boolean
@@ -40,9 +47,13 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
   const [preference, setPreference] = useState<LocalePreference>(getLocalePreference)
   const [resolution, setResolution] = useState(DEFAULT_RESOLUTION)
   const [bitrate, setBitrate] = useState(String(DEFAULT_BITRATE_BPS))
+  const [autoNightMode, setAutoNightMode] = useState<AutoNightModePreference>(
+    getAutoNightModePreference,
+  )
 
   const reconnectVideo = useSystemStore((state) => state.reconnectVideo)
   const bluetoothEnabled = useSystemStore((state) => state.modules.bluetooth)
+  const lightEnabled = useSystemStore((state) => state.modules.light)
   const motionEnabled = useSystemStore((state) => state.modules.motion)
   const calibrating = useTelemetryStore((state) => state.motion?.calibrating ?? false)
   const { mutate: applyStreamConfig } = useSetCameraStreamConfigMutation()
@@ -93,6 +104,20 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
     applyStream(resolution, next)
   }
 
+  const applyAutoNightMode = (next: AutoNightModePreference) => {
+    setAutoNightMode(next)
+    setAutoNightModePreference(next)
+    sendAutoNightMode(next.enabled, next.thresholdLux)
+  }
+
+  const handleAutoNightModeToggle = (enabled: boolean) => {
+    applyAutoNightMode({ ...autoNightMode, enabled })
+  }
+
+  const handleAutoNightModeThreshold = (thresholdLux: number) => {
+    applyAutoNightMode({ ...autoNightMode, thresholdLux })
+  }
+
   return (
     <Modal
       open={open}
@@ -140,6 +165,27 @@ export const Settings = ({ open, onClose }: SettingsProps) => {
               />
             </div>
           </div>
+
+          {lightEnabled ? (
+            <div className="mt-3 flex flex-col gap-3">
+              <Checkbox
+                label={t('autoNightMode')}
+                checked={autoNightMode.enabled}
+                onChange={(event) => handleAutoNightModeToggle(event.target.checked)}
+              />
+              <Slider
+                label={`${t('autoNightModeThreshold')} (${autoNightMode.thresholdLux} ${t('luxUnit')})`}
+                min={NIGHT_MODE_THRESHOLD_MIN}
+                max={NIGHT_MODE_THRESHOLD_MAX}
+                step={1}
+                value={autoNightMode.thresholdLux}
+                disabled={!autoNightMode.enabled}
+                onChange={(event) =>
+                  handleAutoNightModeThreshold(Number(event.target.value))
+                }
+              />
+            </div>
+          ) : null}
 
           <OTAUpdater onInstallStart={onClose} />
 

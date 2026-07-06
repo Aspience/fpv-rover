@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from modules.camera.schema import RecordCommand
-from modules.light.schema import SetBrightnessCommand
+from modules.light.schema import SetAutoNightModeCommand, SetBrightnessCommand
 from modules.motion.schema import CalibrateCommand, MoveCommand
 
 
@@ -18,6 +18,11 @@ class HeartbeatCommand(BaseModel):
 
 
 ClientCommand = Annotated[
-    HeartbeatCommand | MoveCommand | CalibrateCommand | SetBrightnessCommand | RecordCommand,
+    HeartbeatCommand
+    | MoveCommand
+    | CalibrateCommand
+    | SetBrightnessCommand
+    | SetAutoNightModeCommand
+    | RecordCommand,
     Field(discriminator="cmd"),
 ]

@@ -17,6 +17,6 @@ export {
   useApplyUpdateMutation,
   useSetCameraStreamConfigMutation,
 } from './queries'
-export { wsClient, sendMove, sendBrightness } from './websocket'
+export { wsClient, sendMove, sendBrightness, sendAutoNightMode } from './websocket'
 export { connectWhep } from './webrtc'
 export { env, apiBaseUrl, browserHost, wsUrl, whepBaseUrl, whepUrl, assertEnv } from './env'

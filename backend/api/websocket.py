@@ -19,7 +19,7 @@ from api.schemas.telemetry import TelemetryMessage, TelemetryModules
 from core.config import Topics, get_settings
 from core.event_bus import EventBus
 from modules.camera.schema import RecordCommand
-from modules.light.schema import SetBrightnessCommand
+from modules.light.schema import SetAutoNightModeCommand, SetBrightnessCommand
 from modules.motion.control import dispatch_control
 from modules.motion.schema import CalibrateCommand, MoveCommand
 
@@ -113,6 +113,16 @@ class TelemetryHub:
             await self.event_bus.publish(
                 Topics.COMMAND_LIGHT,
                 {"level": command.level},
+            )
+            return
+
+        if isinstance(command, SetAutoNightModeCommand):
+            await self.event_bus.publish(
+                Topics.COMMAND_LIGHT_AUTO_NIGHT,
+                {
+                    "enabled": command.enabled,
+                    "threshold_lux": command.threshold_lux,
+                },
             )
             return
 
