@@ -18,6 +18,7 @@ class LightModule(BaseHardwareModule):
     async def setup(self) -> None:
         self._auto_night_mode_enabled = False
         self._night_mode_threshold = config.NIGHT_MODE_LUX_THRESHOLD
+        self._night_mode_active: bool | None = None
         logger.info(
             "Light module ready (BH1750 @ 0x%02x)",
             self.settings.light_i2c_address,
@@ -43,10 +44,7 @@ class LightModule(BaseHardwareModule):
         )
         if self._auto_night_mode_enabled:
             enabled = lux < self._night_mode_threshold
-            await self.event_bus.publish(
-                Topics.CAMERA_NIGHT_MODE,
-                {"enabled": enabled, "lux": lux},
-            )
+            await self._publish_night_mode_if_changed(enabled, lux)
         await asyncio.sleep(config.POLL_INTERVAL_SEC)
 
     async def cleanup(self) -> None:
@@ -75,7 +73,17 @@ class LightModule(BaseHardwareModule):
                 self._night_mode_threshold,
             )
             if not self._auto_night_mode_enabled:
-                await self.event_bus.publish(
-                    Topics.CAMERA_NIGHT_MODE,
-                    {"enabled": False},
-                )
+                await self._publish_night_mode_if_changed(False)
+
+    async def _publish_night_mode_if_changed(
+        self,
+        enabled: bool,
+        lux: float | None = None,
+    ) -> None:
+        if enabled == self._night_mode_active:
+            return
+        self._night_mode_active = enabled
+        payload: dict[str, bool | float] = {"enabled": enabled}
+        if lux is not None:
+            payload["lux"] = lux
+        await self.event_bus.publish(Topics.CAMERA_NIGHT_MODE, payload)
