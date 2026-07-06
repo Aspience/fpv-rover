@@ -43,8 +43,7 @@ class LightModule(BaseHardwareModule):
             {"module": "light", "data": {"lux": lux}},
         )
         if self._auto_night_mode_enabled:
-            enabled = lux < self._night_mode_threshold
-            await self._publish_night_mode_if_changed(enabled, lux)
+            await self._apply_auto_night_mode(lux)
         await asyncio.sleep(config.POLL_INTERVAL_SEC)
 
     async def cleanup(self) -> None:
@@ -74,6 +73,20 @@ class LightModule(BaseHardwareModule):
             )
             if not self._auto_night_mode_enabled:
                 await self._publish_night_mode_if_changed(False)
+            else:
+                await self._read_and_apply_auto_night_mode()
+
+    async def _apply_auto_night_mode(self, lux: float) -> None:
+        enabled = lux < self._night_mode_threshold
+        await self._publish_night_mode_if_changed(enabled, lux)
+
+    async def _read_and_apply_auto_night_mode(self) -> None:
+        lux = await asyncio.to_thread(
+            read_lux,
+            self.settings.i2c_bus,
+            self.settings.light_i2c_address,
+        )
+        await self._apply_auto_night_mode(lux)
 
     async def _publish_night_mode_if_changed(
         self,
