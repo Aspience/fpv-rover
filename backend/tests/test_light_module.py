@@ -76,14 +76,12 @@ async def test_light_module_night_mode_when_auto_enabled(
     module = LightModule(bus, settings)
 
     await module.setup()
-    await bus.publish(
-        Topics.COMMAND_LIGHT_AUTO_NIGHT,
-        {"enabled": True, "threshold_lux": 10.0},
-    )
-    await asyncio.sleep(0)
-
     with patch("modules.light.module.read_lux", return_value=5.0):
-        await module.loop()
+        await bus.publish(
+            Topics.COMMAND_LIGHT_AUTO_NIGHT,
+            {"enabled": True, "threshold_lux": 10.0},
+        )
+        await asyncio.sleep(0)
 
     low = received.get_nowait()
     assert low == {"enabled": True, "lux": 5.0}
@@ -94,6 +92,41 @@ async def test_light_module_night_mode_when_auto_enabled(
 
     high = received.get_nowait()
     assert high == {"enabled": False, "lux": 100.0}
+
+    collector.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await collector
+
+
+@pytest.mark.asyncio
+async def test_light_module_applies_night_mode_immediately_on_auto_enable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("modules.light.module.config.POLL_INTERVAL_SEC", 0.0)
+
+    bus = EventBus()
+    received: asyncio.Queue[dict] = asyncio.Queue()
+    stream = bus.subscribe(Topics.CAMERA_NIGHT_MODE)
+
+    async def _collect() -> None:
+        async for payload in stream:
+            await received.put(payload)
+
+    collector = asyncio.create_task(_collect())
+    settings = Settings(_env_file=str(ENV_EXAMPLE))
+    module = LightModule(bus, settings)
+
+    await module.setup()
+    with patch("modules.light.module.read_lux", return_value=3.0):
+        await bus.publish(
+            Topics.COMMAND_LIGHT_AUTO_NIGHT,
+            {"enabled": True, "threshold_lux": 10.0},
+        )
+        await asyncio.sleep(0)
+        await module.cleanup()
+
+    assert received.qsize() == 1
+    assert received.get_nowait() == {"enabled": True, "lux": 3.0}
 
     collector.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -119,13 +152,13 @@ async def test_light_module_skips_duplicate_night_mode_events(
     module = LightModule(bus, settings)
 
     await module.setup()
-    await bus.publish(
-        Topics.COMMAND_LIGHT_AUTO_NIGHT,
-        {"enabled": True, "threshold_lux": 10.0},
-    )
-    await asyncio.sleep(0)
-
     with patch("modules.light.module.read_lux", return_value=100.0):
+        await bus.publish(
+            Topics.COMMAND_LIGHT_AUTO_NIGHT,
+            {"enabled": True, "threshold_lux": 10.0},
+        )
+        await asyncio.sleep(0)
+
         await module.loop()
         await module.loop()
         await module.loop()
