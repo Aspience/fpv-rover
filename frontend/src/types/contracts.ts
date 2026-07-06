@@ -148,11 +148,18 @@ export interface SetBrightnessCommand {
   level: number
 }
 
+export interface SetAutoNightModeCommand {
+  cmd: 'set_auto_night_mode'
+  enabled: boolean
+  threshold_lux: number
+}
+
 export type ClientCommand =
   | HeartbeatCommand
   | MoveCommand
   | CalibrateCommand
   | SetBrightnessCommand
+  | SetAutoNightModeCommand
 
 export interface ErrorMessage {
   type: 'error'

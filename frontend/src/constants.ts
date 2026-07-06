@@ -57,6 +57,12 @@ export const STREAM_RECONNECT_DELAY_MS = 1200
 
 // ── Persistence keys ───────────────────────────────────────────────────────
 export const LOCALE_STORAGE_KEY = 'fpv-rover:locale'
+export const AUTO_NIGHT_MODE_STORAGE_KEY = 'fpv-rover:auto-night-mode'
+
+// ── Auto night mode (lux) ──────────────────────────────────────────────────
+export const NIGHT_MODE_THRESHOLD_MIN = 1
+export const NIGHT_MODE_THRESHOLD_MAX = 200
+export const NIGHT_MODE_THRESHOLD_DEFAULT = 10
 
 // ── Event log entry ids ────────────────────────────────────────────────────
 export const LOG_IDS = {
