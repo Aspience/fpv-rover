@@ -1,0 +1,616 @@
+# Main Board Wiring Schema
+
+Hardware wiring reference for the **main prototype board** of the FPV Rover project.
+
+| Property | Value |
+|----------|-------|
+| Board size | 70 × 90 mm (7 × 9 cm) |
+| Hole grid | 31 × 26 |
+| Hole pitch | 2.54 mm |
+| Layers | Double-sided prototype PCB |
+| Host | [Raspberry Pi Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/) (off-board, header wires) |
+
+Software GPIO and I2C defaults live in [`.env.example`](.env.example). **This document is the physical wiring source of truth.**
+
+---
+
+## Wiring concept: shared buses
+
+All shared rails are **one physical bus per voltage or signal** on the perfboard (copper strip, solder rail, or wire wrap along a hole row). Every module **taps** the bus — nothing chains power or I2C through another module.
+
+**Assembly tip:** on the 7 × 9 cm perfboard, run each `BUS_*` along a dedicated row of holes (2.54 mm pitch). Connect modules with short tap wires.
+
+**Ground:** use **two separate ground buses** — signal and power — joined at **one tie point** only (see below).
+
+### Bus glossary
+
+| Bus identifier | Voltage / signal | Source | Consumers (tap onto bus) |
+|----------------|------------------|--------|--------------------------|
+| `BUS_GND_SIG` | 0 V signal / logic | Pi GND pin, BEC `VOUT−` | Pi GND, INA219 `GND`, MPU6050 `GND` + `AD0`, BEC `VOUT−` |
+| `BUS_GND_PWR` | 0 V power / high current | BMS `P−` | BMS `P−`, BEC `VIN−`, TB6612 `GND` ×3 |
+| `BUS_GND_TIE` | Ground tie (single point) | — | **One** short link between `BUS_GND_SIG` and `BUS_GND_PWR` (at BEC or BMS `P−`) |
+| `BUS_PACK_V+` | 7.4–8.4 V protected | BMS `P+` | BEC `VIN+`, INA219 `VIN+`, INA219 `VIN−` (load side), TB6612 `VM` ×3 |
+| `BUS_5V` | 5 V | BEC `VOUT+` (only source) | Pi `5V` pin 2 |
+| `BUS_3V3` | 3.3 V logic | Pi `3V3` pin 1 (only source) | INA219 `VCC`, MPU6050 `VCC`, TB6612 `VCC` + `STBY` ×3 |
+| `BUS_I2C_SDA` | I2C data | Pi `GPIO2` pin 3 | INA219 `SDA`, MPU6050 `SDA` |
+| `BUS_I2C_SCL` | I2C clock | Pi `GPIO3` pin 5 | INA219 `SCL`, MPU6050 `SCL` |
+| `BUS_CELL_MID` | Cell midpoint ~4.2 V | 2S2P pack balance tap | BMS `BM`, charger `BM` |
+| `BUS_CELL_NEG` | Cell negative (pre-BMS) | Pack `-` | BMS `B-`, charger `B-` |
+| `BUS_CELL_POS` | Cell positive (pre-BMS) | Pack `+` | BMS `B+`, charger `B+` |
+
+### Split ground (signal vs power)
+
+Two ground buses keep motor and pack return currents off the Pi and I2C reference:
+
+| Bus | Role | Typical loads |
+|-----|------|----------------|
+| `BUS_GND_SIG` | Logic, Pi, sensors | Raspberry Pi, INA219, GY-521 (MPU6050), BEC 5 V return |
+| `BUS_GND_PWR` | Pack and motor returns | BMS `P−`, BEC high-side input, TB6612 ×3 |
+
+**Tie rule:** connect `BUS_GND_SIG` and `BUS_GND_PWR` at **exactly one point** — recommended at the iFlight BEC (`VIN−` ↔ `VOUT−` area) or adjacent to BMS `P−`. Use one short, thick wire or a single solder bridge. Do **not** daisy-chain multiple ties.
+
+```mermaid
+flowchart LR
+  SIG[BUS_GND_SIG]
+  PWR[BUS_GND_PWR]
+  TIE["BUS_GND_TIE<br/>single point"]
+
+  SIG --- TIE
+  PWR --- TIE
+```
+
+**GPIO control lines** (PWMA, AIN1, AIN2, tacho) are **dedicated point-to-point** wires Pi ↔ driver. Document them as `SIG_*` nets (e.g. `SIG_FRONT_PWMA`).
+
+**Identifier rules:**
+
+- Shared rails: `BUS_{NAME}`
+- Dedicated signals: `SIG_{MODULE}_{SIGNAL}`
+- Module-local: `{OWNER}_{SIGNAL}`
+
+### 2S2P cell layout
+
+Four 18650 Li-ion cells in **2S2P** configuration:
+
+- **String A:** Cell A1 (−) → Cell A2 (+)
+- **String B:** Cell B1 (−) → Cell B2 (+)
+- **Parallel:** String A and String B share the same `BUS_CELL_NEG`, `BUS_CELL_MID`, and `BUS_CELL_POS`
+
+```mermaid
+flowchart TB
+  subgraph strA [String A — 2S series]
+    direction LR
+    A1n["A1 −"] --- A1p["A1 +"]
+    A1p --- A2n["A2 −"]
+    A2n --- A2p["A2 +"]
+  end
+
+  subgraph strB [String B — 2S series paralleled with A]
+    direction LR
+    B1n["B1 −"] --- B1p["B1 +"]
+    B1p --- B2n["B2 −"]
+    B2n --- B2p["B2 +"]
+  end
+
+  NEG[BUS_CELL_NEG]
+  MID["BUS_CELL_MID<br/>A1+/A2− = B1+/B2−"]
+  POS[BUS_CELL_POS]
+
+  A1n --- NEG
+  B1n --- NEG
+  A1p --- MID
+  A2n --- MID
+  B1p --- MID
+  B2n --- MID
+  A2p --- POS
+  B2p --- POS
+```
+
+Each string is two cells in **series** (`flowchart` left-to-right inside the subgraph). **Parallel** ties join both strings to the same three pack buses.
+
+**BMS soldering order:** connect `B-` first, then `BM`, then `B+` (standard 2S protection practice).
+
+**Power path:** cells → BMS → `BUS_PACK_V+` / `BUS_GND_PWR` → {BEC input, INA219 shunt, TB6612 VM}; BEC `VOUT−` → `BUS_GND_SIG` → Pi; Pi sources `BUS_3V3` and `BUS_I2C_*` → {INA219, MPU6050, TB6612 logic}; `BUS_GND_SIG` ↔ `BUS_GND_PWR` tied once at BEC/BMS; Type-C charger taps `BUS_CELL_*` in parallel with BMS cell pads (not through BMS output).
+
+---
+
+## Connection diagrams
+
+### Diagram 0 — Bus topology overview
+
+All shared buses as backbone rails; modules tap in (star topology).
+
+```mermaid
+flowchart TB
+  subgraph buses [Shared buses on main board]
+    GND_SIG[BUS_GND_SIG]
+    GND_PWR[BUS_GND_PWR]
+    GND_TIE[BUS_GND_TIE]
+    BUS_PACK[BUS_PACK_V+]
+    BUS_3V3[BUS_3V3]
+    BUS_5V[BUS_5V]
+    BUS_SDA[BUS_I2C_SDA]
+    BUS_SCL[BUS_I2C_SCL]
+    BUS_MID[BUS_CELL_MID]
+    BUS_CNEG[BUS_CELL_NEG]
+    BUS_CPOS[BUS_CELL_POS]
+  end
+
+  BMS[BMS P+ P-]
+  BEC[iFlight BEC]
+  INA[INA219]
+  IMU[GY-521]
+  DRV1[TB6612 front]
+  DRV2[TB6612 rear]
+  DRV3[TB6612 steer]
+  CHG[Type-C charger]
+  PI[Raspberry Pi Zero 2 W]
+
+  GND_SIG --- GND_TIE
+  GND_PWR --- GND_TIE
+
+  BMS -->|P+| BUS_PACK
+  BMS -->|P-| GND_PWR
+  BEC -->|VIN+| BUS_PACK
+  BEC -->|VIN-| GND_PWR
+  BEC -->|VOUT+| BUS_5V
+  BEC -->|VOUT-| GND_SIG
+
+  INA -->|VCC| BUS_3V3
+  INA -->|GND| GND_SIG
+  INA -->|VIN+| BUS_PACK
+  INA -->|SDA| BUS_SDA
+  INA -->|SCL| BUS_SCL
+
+  IMU -->|VCC| BUS_3V3
+  IMU -->|GND| GND_SIG
+  IMU -->|SDA| BUS_SDA
+  IMU -->|SCL| BUS_SCL
+
+  DRV1 -->|VM| BUS_PACK
+  DRV1 -->|VCC STBY| BUS_3V3
+  DRV1 -->|GND| GND_PWR
+  DRV2 -->|VM| BUS_PACK
+  DRV2 -->|VCC STBY| BUS_3V3
+  DRV2 -->|GND| GND_PWR
+  DRV3 -->|VM| BUS_PACK
+  DRV3 -->|VCC STBY| BUS_3V3
+  DRV3 -->|GND| GND_PWR
+
+  CHG -->|B-| BUS_CNEG
+  CHG -->|BM| BUS_MID
+  CHG -->|B+| BUS_CPOS
+
+  PI -->|3V3 pin 1| BUS_3V3
+  PI -->|5V pin 2| BUS_5V
+  PI -->|GND| GND_SIG
+  PI -->|GPIO2| BUS_SDA
+  PI -->|GPIO3| BUS_SCL
+```
+
+### Diagram 1 — Power and pack wiring
+
+Battery → BMS → pack bus → loads. USB-C charger taps cell balance points.
+
+```mermaid
+flowchart LR
+  subgraph cells [2S2P Pack]
+    S1A[Cell A1]
+    S1B[Cell A2]
+    S2A[Cell B1]
+    S2B[Cell B2]
+  end
+
+  subgraph bmsBlock [BMS 2S Protection]
+    BMS_BM[BM]
+    BMS_PP[P+]
+    BMS_PN[P-]
+  end
+
+  subgraph chgBlock [Type-C Charger]
+    CHG_USB[USB-C 5V]
+    CHG_BM[BM]
+  end
+
+  PACKP[BUS_PACK_V+]
+  PACKN[BUS_GND_PWR]
+  MID[BUS_CELL_MID]
+  SIGGND[BUS_GND_SIG]
+
+  S1A --- S1B
+  S2A --- S2B
+  S1A --> BMS_PN
+  S1B --> MID
+  S2B --> BMS_PP
+  S2A --> PACKN
+  S2B --> PACKP
+  BMS_PP --> PACKP
+  BMS_PN --> PACKN
+  MID --> BMS_BM
+  MID --> CHG_BM
+  CHG_USB -.->|charge only| PACKP
+
+  PACKP --> BEC_IN[iFlight BEC VIN+]
+  PACKP --> INA_VIN[INA219 VIN+]
+  PACKP --> DRV_VM[TB6612 VM x3]
+  PACKN --> BEC_VINM[iFlight BEC VIN-]
+  PACKN --> GND_PWR[BUS_GND_PWR rail]
+
+  BEC_IN --> BEC_OUT[BUS_5V]
+  BEC_OUT --> PI_5V[Pi 5V pin 2]
+  BEC_VOUTM[iFlight BEC VOUT-] --> SIGGND
+  SIGGND --> PI_GND[Pi GND pin 6]
+  GND_PWR -.->|BUS_GND_TIE once| SIGGND
+```
+
+Protected pack voltage feeds high-power loads on `BUS_GND_PWR`; BEC `VOUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground.
+
+### Diagram 2 — Raspberry Pi GPIO and I2C connections
+
+Signal wires from main-board modules to the Pi header (BCM + physical pin on labels).
+
+```mermaid
+flowchart TB
+  subgraph pi [Raspberry Pi Zero 2 W]
+    P_5V["5V pin 2"]
+    P_3V3["3V3 pin 1"]
+    P_GND["GND pin 6"]
+    P_SDA["GPIO2 pin 3 I2C SDA"]
+    P_SCL["GPIO3 pin 5 I2C SCL"]
+    P_G18["GPIO18 pin 12"]
+    P_G23["GPIO23 pin 16"]
+    P_G24["GPIO24 pin 18"]
+    P_G17["GPIO17 pin 11"]
+    P_G27["GPIO27 pin 13"]
+    P_G12["GPIO12 pin 32"]
+    P_G16["GPIO16 pin 36"]
+    P_G20["GPIO20 pin 38"]
+    P_G5["GPIO5 pin 29"]
+    P_G6["GPIO6 pin 31"]
+    P_G13["GPIO13 pin 33"]
+    P_G19["GPIO19 pin 35"]
+    P_G26["GPIO26 pin 37"]
+    P_G21["GPIO21 pin 40"]
+    P_G22["GPIO22 pin 15"]
+  end
+
+  BEC[iFlight BEC]
+  INA[INA219]
+  IMU[GY-521 MPU6050]
+  DRV_F[DRV Front TB6612]
+  DRV_R[DRV Rear TB6612]
+  DRV_S[DRV Steer TB6612]
+
+  BEC -->|VOUT+| P_5V
+  BEC -->|VOUT-| P_GND
+
+  INA -->|SDA| P_SDA
+  INA -->|SCL| P_SCL
+  INA -->|VCC| P_3V3
+  INA -->|GND| P_GND
+
+  IMU -->|SDA| P_SDA
+  IMU -->|SCL| P_SCL
+  IMU -->|VCC| P_3V3
+  IMU -->|GND| P_GND
+
+  DRV_F -->|PWMA| P_G18
+  DRV_F -->|AIN1| P_G23
+  DRV_F -->|AIN2| P_G24
+  DRV_F -->|Tacho A| P_G17
+  DRV_F -->|Tacho B| P_G27
+
+  DRV_R -->|PWMA| P_G12
+  DRV_R -->|AIN1| P_G16
+  DRV_R -->|AIN2| P_G20
+  DRV_R -->|Tacho A| P_G5
+  DRV_R -->|Tacho B| P_G6
+
+  DRV_S -->|PWMA| P_G13
+  DRV_S -->|AIN1| P_G19
+  DRV_S -->|AIN2| P_G26
+  DRV_S -->|Tacho A| P_G21
+  DRV_S -->|Tacho B| P_G22
+
+  DRV_F -->|VCC STBY| P_3V3
+  DRV_R -->|VCC STBY| P_3V3
+  DRV_S -->|VCC STBY| P_3V3
+```
+
+I2C and 3.3 V modules tap `BUS_I2C_*` / `BUS_3V3` at the Pi header. Motor control uses dedicated `SIG_*` wires.
+
+### Diagram 3 — Motor outputs and encoders
+
+TB6612 drives LEGO Control+ hubs; encoder tach signals return to Pi GPIO (not through the driver).
+
+```mermaid
+flowchart LR
+  subgraph drivers [TB6612FNG x3]
+    F[Front A01 A02]
+    R[Rear A01 A02]
+    S[Steer A01 A02]
+  end
+
+  subgraph motors [LEGO Control+ Hubs]
+    MF[Front hub]
+    MR[Rear hub]
+    MS[Steer hub]
+  end
+
+  subgraph enc [Encoder tach outputs]
+    TF[Tacho front]
+    TR[Tacho rear]
+    TS[Tacho steer]
+  end
+
+  PI_GPIO[Pi GPIO inputs]
+
+  F --> MF
+  R --> MR
+  S --> MS
+  MF --> TF
+  MR --> TR
+  MS --> TS
+  TF --> PI_GPIO
+  TR --> PI_GPIO
+  TS --> PI_GPIO
+```
+
+---
+
+## Component pin tables
+
+### 1. 2S2P Li-ion pack (4× 18650)
+
+Four 18650 cells, two series strings paralleled (2S2P). Nominal 7.4 V, full charge 8.4 V.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | Pack negative | Common negative of both parallel strings | `CELL_PACK_NEG` | `BUS_CELL_NEG` | — |
+| 2 | Pack midpoint | Junction between upper and lower cell in series | `CELL_PACK_MID` | `BUS_CELL_MID` | — |
+| 3 | Pack positive | Common positive of both parallel strings | `CELL_PACK_POS` | `BUS_CELL_POS` | — |
+
+---
+
+### 2. BMS 2S protection board
+
+**Size:** 48.4 × 20.1 mm  
+**Product:** [AliExpress — 2S BMS battery charge controller](https://aliexpress.ru/item/1005004118305965.html?spm=a2g2w.orderdetail.0.0.de144aa6WR8x5i&sku_id=12000056589647603)
+
+2S lithium protection with balancing. Output `P+` / `P-` is the protected pack bus.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | B− | Battery negative (Cell 1 −) | `BMS2S_BMINUS` | `BUS_CELL_NEG` | — |
+| 2 | BM / B1 | Midpoint between Cell 1 and Cell 2 | `BMS2S_BMID` | `BUS_CELL_MID` | — |
+| 3 | B+ | Battery positive (Cell 2 +) | `BMS2S_BPLUS` | `BUS_CELL_POS` | — |
+| 4 | P− | Protected pack negative output | `BMS2S_PMINUS` | `BUS_GND_PWR` | — |
+| 5 | P+ | Protected pack positive output | `BMS2S_PPLUS` | `BUS_PACK_V+` | — |
+
+---
+
+### 3. Type-C 2S USB charger (15 W, balanced)
+
+**Product:** [Ozon — Type-C 2S USB BMS 15 W 8.4 V 1.5 A](https://ozon.by/product/modul-zaryada-li-ion-akkumulyatorov-type-c-2s-usb-bms-15w-8-4v1-5a-s-balansirovkoy-1sht-3825497145/?is_apparel_size_selected=true)
+
+IP2326-based boost charger. Requires a separate protection BMS on the pack. Default 2S mode with onboard balancing. Thermal sensor key `tp5100` in `.env.example` maps to this module.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | USB-C | 5 V input (Type-C port or solder pads) | `CHARGER_USBC_VIN` | External 5 V USB-C supply | — |
+| 2 | B− | Battery negative input | `CHARGER_USBC_BMINUS` | `BUS_CELL_NEG` | — |
+| 3 | BM | Balance midpoint input | `CHARGER_USBC_BMID` | `BUS_CELL_MID` | — |
+| 4 | B+ | Battery positive input | `CHARGER_USBC_BPLUS` | `BUS_CELL_POS` | — |
+| 5 | VIN | Alternate wired 5 V input (if present) | `CHARGER_USBC_VIN_PAD` | External 5 V supply | — |
+| 6 | OUT+ / P+ | Boost output positive (if broken out) | `CHARGER_USBC_OUTPLUS` | — (not used; charge via B pads) | — |
+| 7 | OUT− / P− | Boost output negative (if broken out) | `CHARGER_USBC_OUTMINUS` | — (not used) | — |
+
+---
+
+### 4. iFlight Micro 2–8S BEC (5 V / 12 V)
+
+**Product:** [AliExpress — iFlight Micro 2–8S BEC](https://aliexpress.ru/item/1005009328418558.html)
+
+Step-down regulator. Default **5 V / 3 A** output (leave `ON-12V` jumper open). Sole source of `BUS_5V`.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN+ | Motor/pack voltage input | `BEC_IFLIGHT_VINPLUS` | `BUS_PACK_V+` | — |
+| 2 | VIN− | Input ground (power return) | `BEC_IFLIGHT_VINMINUS` | `BUS_GND_PWR` | — |
+| 3 | VOUT+ | Regulated output positive | `BEC_IFLIGHT_VOUTPLUS` | `BUS_5V` | 5V (pin 2) — `BUS_5V` source |
+| 4 | VOUT− | Regulated output ground (Pi return) | `BEC_IFLIGHT_VOUTMINUS` | `BUS_GND_SIG` | GND (pin 6) — `BUS_GND_SIG` tap |
+
+> Place adequate input capacitance near the BEC. Tie `BUS_GND_PWR` and `BUS_GND_SIG` **once** at the BEC (recommended) or at BMS `P−`.
+
+---
+
+### 5. INA219 current/voltage sensor
+
+**Product:** [AliExpress — INA219 DC sensor module](https://aliexpress.ru/item/32469098903.html?spm=a2g2w.orderdetail.0.0.397a4aa6uCM5jx&sku_id=12000057342623698)
+
+High-side current/voltage monitor on I2C. Default address `0x40` (`ROVER_POWER_I2C_ADDRESS`).
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VCC | Logic supply | `INA219_VCC` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 2 | GND | Logic ground | `INA219_GND` | `BUS_GND_SIG` | GND (pin 6) — `BUS_GND_SIG` tap |
+| 3 | SDA | I2C data | `INA219_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — `BUS_I2C_SDA` source |
+| 4 | SCL | I2C clock | `INA219_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — `BUS_I2C_SCL` source |
+| 5 | VIN+ | High-side shunt input (battery side) | `INA219_VINPLUS` | `BUS_PACK_V+` | — |
+| 6 | VIN− | High-side shunt output (load side) | `INA219_VINMINUS` | `BUS_PACK_V+` (downstream tap) | — |
+| 7 | A0 | I2C address bit 0 | `INA219_A0` | Tied on module (address `0x40`) | — |
+| 8 | A1 | I2C address bit 1 | `INA219_A1` | Tied on module (address `0x40`) | — |
+
+> `VIN+` / `VIN−` span the on-board shunt: pack current flows through the module before reaching the rest of `BUS_PACK_V+`.
+
+---
+
+### 6. GY-521 (MPU6050) IMU
+
+**Product:** [AliExpress — GY-521 MPU6050 module](https://aliexpress.ru/item/1005008410243217.html?spm=a2g2w.orderdetail.0.0.6fc54aa6ySaXBR&sku_id=12000052230264891)
+
+6-axis gyro + accelerometer. Default address `0x68` with `AD0` tied low (`ROVER_IMU_I2C_ADDRESS`).
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VCC | Logic supply | `MPU6050_VCC` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 2 | GND | Logic ground | `MPU6050_GND` | `BUS_GND_SIG` | GND (pin 6) — `BUS_GND_SIG` tap |
+| 3 | SCL | I2C clock | `MPU6050_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — `BUS_I2C_SCL` source |
+| 4 | SDA | I2C data | `MPU6050_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — `BUS_I2C_SDA` source |
+| 5 | XDA | Auxiliary I2C data | `MPU6050_XDA` | NC | — |
+| 6 | XCL | Auxiliary I2C clock | `MPU6050_XCL` | NC | — |
+| 7 | AD0 | I2C address select | `MPU6050_AD0` | `BUS_GND_SIG` (address `0x68`) | GND (pin 6) — `BUS_GND_SIG` tap |
+| 8 | INT | Interrupt output | `MPU6050_INT` | NC | — |
+
+---
+
+### 7. TB6612FNG motor driver — front (drive)
+
+**Product:** [AliExpress — TB6612FNG motor driver board](https://aliexpress.ru/item/1005007794705783.html?spm=a2g2w.orderdetail.0.0.43c84aa6MN8SJi&sku_id=12000042228397920)
+
+Channel A drives the front LEGO Control+ hub. Channel B pins not used. `STBY` must be high for the H-bridge to operate.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VM | Motor power supply (2.2–13.5 V) | `DRV_FRONT_VM` | `BUS_PACK_V+` | — |
+| 2 | VCC | Logic supply (2.7–5.5 V) | `DRV_FRONT_VCC` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 3 | GND | Ground (motor return) | `DRV_FRONT_GND` | `BUS_GND_PWR` | — |
+| 4 | STBY | Standby (active high) | `DRV_FRONT_STBY` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 5 | PWMA | PWM speed input, channel A | `DRV_FRONT_PWMA` | `SIG_FRONT_PWMA` | GPIO18 (pin 12) — PWM0 |
+| 6 | AIN1 | Direction input 1, channel A | `DRV_FRONT_AIN1` | `SIG_FRONT_AIN1` | GPIO23 (pin 16) |
+| 7 | AIN2 | Direction input 2, channel A | `DRV_FRONT_AIN2` | `SIG_FRONT_AIN2` | GPIO24 (pin 18) |
+| 8 | A01 | Motor output 1, channel A | `DRV_FRONT_A01` | `MOT_FRONT_OUT_A` | — |
+| 9 | A02 | Motor output 2, channel A | `DRV_FRONT_A02` | `MOT_FRONT_OUT_B` | — |
+| 10 | PWMB | PWM speed input, channel B | `DRV_FRONT_PWMB` | NC | — |
+| 11 | BIN1 | Direction input 1, channel B | `DRV_FRONT_BIN1` | NC | — |
+| 12 | BIN2 | Direction input 2, channel B | `DRV_FRONT_BIN2` | NC | — |
+| 13 | B01 | Motor output 1, channel B | `DRV_FRONT_B01` | NC | — |
+| 14 | B02 | Motor output 2, channel B | `DRV_FRONT_B02` | NC | — |
+| 15 | Tacho A | Encoder channel A (on motor hub) | `ENC_FRONT_TACHO_A` | `SIG_FRONT_TACHO_A` | GPIO17 (pin 11) |
+| 16 | Tacho B | Encoder channel B (on motor hub) | `ENC_FRONT_TACHO_B` | `SIG_FRONT_TACHO_B` | GPIO27 (pin 13) |
+
+Env vars: `ROVER_MOTION_FRONT_PWMA_GPIO`, `ROVER_MOTION_FRONT_AIN1_GPIO`, `ROVER_MOTION_FRONT_AIN2_GPIO`, `ROVER_MOTION_FRONT_TACHO_A_GPIO`, `ROVER_MOTION_FRONT_TACHO_B_GPIO`.
+
+> `GND` returns motor current on `BUS_GND_PWR`; logic I/O references `BUS_GND_SIG` via the single `BUS_GND_TIE`.
+
+---
+
+### 8. TB6612FNG motor driver — rear (drive)
+
+Same board type as front driver; channel A drives the rear LEGO Control+ hub.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VM | Motor power supply | `DRV_REAR_VM` | `BUS_PACK_V+` | — |
+| 2 | VCC | Logic supply | `DRV_REAR_VCC` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 3 | GND | Ground (motor return) | `DRV_REAR_GND` | `BUS_GND_PWR` | — |
+| 4 | STBY | Standby (active high) | `DRV_REAR_STBY` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 5 | PWMA | PWM speed input, channel A | `DRV_REAR_PWMA` | `SIG_REAR_PWMA` | GPIO12 (pin 32) — PWM0 |
+| 6 | AIN1 | Direction input 1, channel A | `DRV_REAR_AIN1` | `SIG_REAR_AIN1` | GPIO16 (pin 36) |
+| 7 | AIN2 | Direction input 2, channel A | `DRV_REAR_AIN2` | `SIG_REAR_AIN2` | GPIO20 (pin 38) |
+| 8 | A01 | Motor output 1, channel A | `DRV_REAR_A01` | `MOT_REAR_OUT_A` | — |
+| 9 | A02 | Motor output 2, channel A | `DRV_REAR_A02` | `MOT_REAR_OUT_B` | — |
+| 10 | PWMB | PWM speed input, channel B | `DRV_REAR_PWMB` | NC | — |
+| 11 | BIN1 | Direction input 1, channel B | `DRV_REAR_BIN1` | NC | — |
+| 12 | BIN2 | Direction input 2, channel B | `DRV_REAR_BIN2` | NC | — |
+| 13 | B01 | Motor output 1, channel B | `DRV_REAR_B01` | NC | — |
+| 14 | B02 | Motor output 2, channel B | `DRV_REAR_B02` | NC | — |
+| 15 | Tacho A | Encoder channel A (on motor hub) | `ENC_REAR_TACHO_A` | `SIG_REAR_TACHO_A` | GPIO5 (pin 29) |
+| 16 | Tacho B | Encoder channel B (on motor hub) | `ENC_REAR_TACHO_B` | `SIG_REAR_TACHO_B` | GPIO6 (pin 31) |
+
+Env vars: `ROVER_MOTION_REAR_PWMA_GPIO`, `ROVER_MOTION_REAR_AIN1_GPIO`, `ROVER_MOTION_REAR_AIN2_GPIO`, `ROVER_MOTION_REAR_TACHO_A_GPIO`, `ROVER_MOTION_REAR_TACHO_B_GPIO`.
+
+---
+
+### 9. TB6612FNG motor driver — steer
+
+Same board type; channel A drives the steering LEGO Control+ hub.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VM | Motor power supply | `DRV_STEER_VM` | `BUS_PACK_V+` | — |
+| 2 | VCC | Logic supply | `DRV_STEER_VCC` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 3 | GND | Ground (motor return) | `DRV_STEER_GND` | `BUS_GND_PWR` | — |
+| 4 | STBY | Standby (active high) | `DRV_STEER_STBY` | `BUS_3V3` | 3V3 (pin 1) — `BUS_3V3` source |
+| 5 | PWMA | PWM speed input, channel A | `DRV_STEER_PWMA` | `SIG_STEER_PWMA` | GPIO13 (pin 33) — PWM1 |
+| 6 | AIN1 | Direction input 1, channel A | `DRV_STEER_AIN1` | `SIG_STEER_AIN1` | GPIO19 (pin 35) |
+| 7 | AIN2 | Direction input 2, channel A | `DRV_STEER_AIN2` | `SIG_STEER_AIN2` | GPIO26 (pin 37) |
+| 8 | A01 | Motor output 1, channel A | `DRV_STEER_A01` | `MOT_STEER_OUT_A` | — |
+| 9 | A02 | Motor output 2, channel A | `DRV_STEER_A02` | `MOT_STEER_OUT_B` | — |
+| 10 | PWMB | PWM speed input, channel B | `DRV_STEER_PWMB` | NC | — |
+| 11 | BIN1 | Direction input 1, channel B | `DRV_STEER_BIN1` | NC | — |
+| 12 | BIN2 | Direction input 2, channel B | `DRV_STEER_BIN2` | NC | — |
+| 13 | B01 | Motor output 1, channel B | `DRV_STEER_B01` | NC | — |
+| 14 | B02 | Motor output 2, channel B | `DRV_STEER_B02` | NC | — |
+| 15 | Tacho A | Encoder channel A (on motor hub) | `ENC_STEER_TACHO_A` | `SIG_STEER_TACHO_A` | GPIO21 (pin 40) |
+| 16 | Tacho B | Encoder channel B (on motor hub) | `ENC_STEER_TACHO_B` | `SIG_STEER_TACHO_B` | GPIO22 (pin 15) |
+
+Env vars: `ROVER_MOTION_STEER_PWMA_GPIO`, `ROVER_MOTION_STEER_AIN1_GPIO`, `ROVER_MOTION_STEER_AIN2_GPIO`, `ROVER_MOTION_STEER_TACHO_A_GPIO`, `ROVER_MOTION_STEER_TACHO_B_GPIO`.
+
+> Tacho rows are wired from the LEGO Control+ encoder outputs to Pi GPIO — they do not pass through the TB6612.
+
+---
+
+## Raspberry Pi Zero 2 W — GPIO map
+
+Pi Zero 2 W uses **BCM GPIO numbering** (what pigpio and `.env.example` use), not physical pin numbers.
+
+Enable **I2C** and **pigpio** before deployment — see [README — I2C and 1-Wire](README.md#3-i2c-and-1-wire).
+
+### Power and bus source pins
+
+| Physical pin | BCM / function | Bus / role | Connected module |
+|--------------|----------------|------------|------------------|
+| 1 | 3V3 | `BUS_3V3` source | INA219, MPU6050, TB6612 ×3 |
+| 2 | 5V | `BUS_5V` sink | iFlight BEC `VOUT+` |
+| 6 | GND | `BUS_GND_SIG` tap | Pi, INA219, MPU6050, BEC `VOUT−` |
+
+**Ground buses (not on Pi header):**
+
+| Bus | Role | Tie point |
+|-----|------|-----------|
+| `BUS_GND_PWR` | BMS `P−`, BEC `VIN−`, TB6612 `GND` ×3 | Join to `BUS_GND_SIG` once at `BUS_GND_TIE` |
+| 3 | GPIO2 | `BUS_I2C_SDA` source | INA219, MPU6050 |
+| 5 | GPIO3 | `BUS_I2C_SCL` source | INA219, MPU6050 |
+
+### Motor control GPIO (dedicated `SIG_*`)
+
+| Physical pin | BCM GPIO | Alt function | Signal | Env var |
+|--------------|----------|--------------|--------|---------|
+| 12 | GPIO18 | PWM0 | Front PWMA | `ROVER_MOTION_FRONT_PWMA_GPIO` |
+| 16 | GPIO23 | — | Front AIN1 | `ROVER_MOTION_FRONT_AIN1_GPIO` |
+| 18 | GPIO24 | — | Front AIN2 | `ROVER_MOTION_FRONT_AIN2_GPIO` |
+| 11 | GPIO17 | — | Front tacho A | `ROVER_MOTION_FRONT_TACHO_A_GPIO` |
+| 13 | GPIO27 | — | Front tacho B | `ROVER_MOTION_FRONT_TACHO_B_GPIO` |
+| 32 | GPIO12 | PWM0 | Rear PWMA | `ROVER_MOTION_REAR_PWMA_GPIO` |
+| 36 | GPIO16 | — | Rear AIN1 | `ROVER_MOTION_REAR_AIN1_GPIO` |
+| 38 | GPIO20 | — | Rear AIN2 | `ROVER_MOTION_REAR_AIN2_GPIO` |
+| 29 | GPIO5 | — | Rear tacho A | `ROVER_MOTION_REAR_TACHO_A_GPIO` |
+| 31 | GPIO6 | — | Rear tacho B | `ROVER_MOTION_REAR_TACHO_B_GPIO` |
+| 33 | GPIO13 | PWM1 | Steer PWMA | `ROVER_MOTION_STEER_PWMA_GPIO` |
+| 35 | GPIO19 | — | Steer AIN1 | `ROVER_MOTION_STEER_AIN1_GPIO` |
+| 37 | GPIO26 | — | Steer AIN2 | `ROVER_MOTION_STEER_AIN2_GPIO` |
+| 40 | GPIO21 | — | Steer tacho A | `ROVER_MOTION_STEER_TACHO_A_GPIO` |
+| 15 | GPIO22 | — | Steer tacho B | `ROVER_MOTION_STEER_TACHO_B_GPIO` |
+
+---
+
+## I2C device map
+
+| Identifier | Part | Address | Bus |
+|------------|------|---------|-----|
+| `INA219_PWRMON` | INA219 | `0x40` | I2C1 (`/dev/i2c-1`) |
+| `MPU6050_IMU` | GY-521 / MPU6050 | `0x68` | I2C1 (`/dev/i2c-1`) |
+
+Both devices share `BUS_I2C_SDA` and `BUS_I2C_SCL` on GPIO2 / GPIO3.
+
+---
+
+## Out of scope
+
+| Item | Notes |
+|------|-------|
+| Second prototype board | Not yet designed |
+| DS18B20 temperature sensors | On future board; `ROVER_THERMAL_SENSOR_IDS` in `.env.example` |
+| GY-302 / BH1750 light sensor | Listed in README, not on main board |
+| Arducam IMX462 camera | CSI connection to Pi, not on main board |
+| Physical module placement | Modules socketed/screwed to perfboard; exact hole coordinates left to assembly |
