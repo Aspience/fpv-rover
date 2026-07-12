@@ -1,20 +1,22 @@
-# Main Board Wiring Schema
+# FPV Rover Wiring Schema
 
-Hardware wiring reference for the **main prototype board** of the FPV Rover project.
+Hardware wiring reference for the FPV Rover prototype: **main board** (power, motion, IMU) and **expansion board** (light + ToF sensors). Main ↔ expansion link and all expansion-board modules use **XH 2.54** connectors.
 
-| Property | Value |
-|----------|-------|
-| Board size | 70 × 90 mm (7 × 9 cm) |
-| Hole grid | 31 × 26 |
-| Hole pitch | 2.54 mm |
-| Layers | Double-sided prototype PCB |
-| Host | [Raspberry Pi Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/) (off-board, header wires) |
+| Property | Main board | Expansion board |
+|----------|------------|-----------------|
+| Board size | 70 × 90 mm (7 × 9 cm) | 70 × 30 mm (7 × 3 cm) |
+| Hole grid | 31 × 26 | ~27 × 11 |
+| Hole pitch | 2.54 mm | 2.54 mm |
+| Layers | Double-sided prototype PCB | Double-sided prototype PCB |
+| Host | [Raspberry Pi Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/) (off-board, header wires) | Via main board `J_EXP` harness |
 
 Software GPIO and I2C defaults live in [`.env.example`](.env.example). **This document is the physical wiring source of truth.**
 
 ---
 
-## Wiring concept: shared buses
+## Main board
+
+### Wiring concept: shared buses
 
 All shared rails are **one physical bus per voltage or signal** on the perfboard (copper strip, solder rail, or wire wrap along a hole row). Every module **taps** the bus — nothing chains power or I2C through another module.
 
@@ -32,8 +34,9 @@ All shared rails are **one physical bus per voltage or signal** on the perfboard
 | `BUS_PACK_V+` | 7.4–8.4 V protected | BMS `P+` | BEC `VIN+`, INA219 `VIN+`, INA219 `VIN−` (load side), TB6612 `VM` ×3 |
 | `BUS_5V` | 5 V | BEC `VOUT+` (only source) | Pi `5V` pin 2 |
 | `BUS_3V3` | 3.3 V logic | Pi `3V3` pin 1 (only source) | INA219 `VCC`, MPU6050 `VCC`, TB6612 `VCC` + `STBY` ×3 |
-| `BUS_I2C_SDA` | I2C data | Pi `GPIO2` pin 3 | INA219 `SDA`, MPU6050 `SDA` |
-| `BUS_I2C_SCL` | I2C clock | Pi `GPIO3` pin 5 | INA219 `SCL`, MPU6050 `SCL` |
+| `BUS_I2C_SDA` | I2C data | Pi `GPIO2` pin 3 | INA219 `SDA`, MPU6050 `SDA`, `J_EXP` pin 3 |
+| `BUS_I2C_SCL` | I2C clock | Pi `GPIO3` pin 5 | INA219 `SCL`, MPU6050 `SCL`, `J_EXP` pin 4 |
+| `J_EXP` | Expansion harness (8-pin XH 2.54) | Main-board connector | Exports `BUS_3V3`, `BUS_GND_SIG`, `BUS_I2C_SDA`, `BUS_I2C_SCL`, `SIG_TOF1_XSHUT`–`SIG_TOF4_XSHUT` to expansion board |
 | `BUS_CELL_MID` | Cell midpoint ~4.2 V | 2S2P pack balance tap | BMS `BM`, charger `BM` |
 | `BUS_CELL_NEG` | Cell negative (pre-BMS) | Pack `-` | BMS `B-`, charger `B-` |
 | `BUS_CELL_POS` | Cell positive (pre-BMS) | Pack `+` | BMS `B+`, charger `B+` |
@@ -113,9 +116,9 @@ Each string is two cells in **series** (`flowchart` left-to-right inside the sub
 
 ---
 
-## Connection diagrams
+### Connection diagrams
 
-### Diagram 0 — Bus topology overview
+#### Diagram 0 — Bus topology overview
 
 All shared buses as backbone rails; modules tap in (star topology).
 
@@ -187,7 +190,7 @@ flowchart TB
   PI -->|GPIO3| BUS_SCL
 ```
 
-### Diagram 1 — Power and pack wiring
+#### Diagram 1 — Power and pack wiring
 
 Battery → BMS → pack bus → loads. USB-C charger taps cell balance points.
 
@@ -244,7 +247,7 @@ flowchart LR
 
 Protected pack voltage feeds high-power loads on `BUS_GND_PWR`; BEC `VOUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground.
 
-### Diagram 2 — Raspberry Pi GPIO and I2C connections
+#### Diagram 2 — Raspberry Pi GPIO and I2C connections
 
 Signal wires from main-board modules to the Pi header (BCM + physical pin on labels).
 
@@ -318,7 +321,7 @@ flowchart TB
 
 I2C and 3.3 V modules tap `BUS_I2C_*` / `BUS_3V3` at the Pi header. Motor control uses dedicated `SIG_*` wires.
 
-### Diagram 3 — Motor outputs and encoders
+#### Diagram 3 — Motor outputs and encoders
 
 TB6612 drives LEGO Control+ hubs; encoder tach signals return to Pi GPIO (not through the driver).
 
@@ -357,9 +360,9 @@ flowchart LR
 
 ---
 
-## Component pin tables
+### Component pin tables
 
-### 1. 2S2P Li-ion pack (4× 18650)
+#### 1. 2S2P Li-ion pack (4× 18650)
 
 Four 18650 cells, two series strings paralleled (2S2P). Nominal 7.4 V, full charge 8.4 V.
 
@@ -371,7 +374,7 @@ Four 18650 cells, two series strings paralleled (2S2P). Nominal 7.4 V, full char
 
 ---
 
-### 2. BMS 2S protection board
+#### 2. BMS 2S protection board
 
 **Size:** 48.4 × 20.1 mm  
 **Product:** [AliExpress — 2S BMS battery charge controller](https://aliexpress.ru/item/1005004118305965.html?spm=a2g2w.orderdetail.0.0.de144aa6WR8x5i&sku_id=12000056589647603)
@@ -388,7 +391,7 @@ Four 18650 cells, two series strings paralleled (2S2P). Nominal 7.4 V, full char
 
 ---
 
-### 3. Type-C 2S USB charger (15 W, balanced)
+#### 3. Type-C 2S USB charger (15 W, balanced)
 
 **Product:** [Ozon — Type-C 2S USB BMS 15 W 8.4 V 1.5 A](https://ozon.by/product/modul-zaryada-li-ion-akkumulyatorov-type-c-2s-usb-bms-15w-8-4v1-5a-s-balansirovkoy-1sht-3825497145/?is_apparel_size_selected=true)
 
@@ -406,7 +409,7 @@ IP2326-based boost charger. Requires a separate protection BMS on the pack. Defa
 
 ---
 
-### 4. iFlight Micro 2–8S BEC (5 V / 12 V)
+#### 4. iFlight Micro 2–8S BEC (5 V / 12 V)
 
 **Product:** [AliExpress — iFlight Micro 2–8S BEC](https://aliexpress.ru/item/1005009328418558.html)
 
@@ -423,7 +426,7 @@ Step-down regulator. Default **5 V / 3 A** output (leave `ON-12V` jumper open). 
 
 ---
 
-### 5. INA219 current/voltage sensor
+#### 5. INA219 current/voltage sensor
 
 **Product:** [AliExpress — INA219 DC sensor module](https://aliexpress.ru/item/32469098903.html?spm=a2g2w.orderdetail.0.0.397a4aa6uCM5jx&sku_id=12000057342623698)
 
@@ -444,7 +447,7 @@ High-side current/voltage monitor on I2C. Default address `0x40` (`ROVER_POWER_I
 
 ---
 
-### 6. GY-521 (MPU6050) IMU
+#### 6. GY-521 (MPU6050) IMU
 
 **Product:** [AliExpress — GY-521 MPU6050 module](https://aliexpress.ru/item/1005008410243217.html?spm=a2g2w.orderdetail.0.0.6fc54aa6ySaXBR&sku_id=12000052230264891)
 
@@ -463,7 +466,7 @@ High-side current/voltage monitor on I2C. Default address `0x40` (`ROVER_POWER_I
 
 ---
 
-### 7. TB6612FNG motor driver — front (drive)
+#### 7. TB6612FNG motor driver — front (drive)
 
 **Product:** [AliExpress — TB6612FNG motor driver board](https://aliexpress.ru/item/1005007794705783.html?spm=a2g2w.orderdetail.0.0.43c84aa6MN8SJi&sku_id=12000042228397920)
 
@@ -494,7 +497,7 @@ Env vars: `ROVER_MOTION_FRONT_PWMA_GPIO`, `ROVER_MOTION_FRONT_AIN1_GPIO`, `ROVER
 
 ---
 
-### 8. TB6612FNG motor driver — rear (drive)
+#### 8. TB6612FNG motor driver — rear (drive)
 
 Same board type as front driver; channel A drives the rear LEGO Control+ hub.
 
@@ -521,7 +524,7 @@ Env vars: `ROVER_MOTION_REAR_PWMA_GPIO`, `ROVER_MOTION_REAR_AIN1_GPIO`, `ROVER_M
 
 ---
 
-### 9. TB6612FNG motor driver — steer
+#### 9. TB6612FNG motor driver — steer
 
 Same board type; channel A drives the steering LEGO Control+ hub.
 
@@ -550,6 +553,341 @@ Env vars: `ROVER_MOTION_STEER_PWMA_GPIO`, `ROVER_MOTION_STEER_AIN1_GPIO`, `ROVER
 
 ---
 
+#### 10. Main board — `J_EXP` expansion harness
+
+8-pin **JST-XH 2.54 mm** connector on the main board edge (`J_EXP`). Pin 1 marked on silkscreen. Mates with matching `J_EXP` on the expansion board via ribbon cable. Mount **female XH** on the main board; mate with expansion board at assembly.
+
+| Pin | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | 3V3 | Logic supply export | `JEXP_VCC` | `BUS_3V3` | 3V3 (pin 1) — source |
+| 2 | GND | Signal ground export | `JEXP_GND` | `BUS_GND_SIG` | GND (pin 6) — tap |
+| 3 | SDA | I2C data export | `JEXP_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) |
+| 4 | SCL | I2C clock export | `JEXP_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) |
+| 5 | XSHUT 1 | TOF400C #1 shutdown | `JEXP_XSHUT_1` | `SIG_TOF1_XSHUT` | GPIO7 (pin 26) — `ROVER_TOF1_XSHUT_GPIO` |
+| 6 | XSHUT 2 | TOF400C #2 shutdown | `JEXP_XSHUT_2` | `SIG_TOF2_XSHUT` | GPIO8 (pin 24) — `ROVER_TOF2_XSHUT_GPIO` |
+| 7 | XSHUT 3 | TOF400C #3 shutdown | `JEXP_XSHUT_3` | `SIG_TOF3_XSHUT` | GPIO10 (pin 19) — `ROVER_TOF3_XSHUT_GPIO` |
+| 8 | XSHUT 4 | TOF400C #4 shutdown | `JEXP_XSHUT_4` | `SIG_TOF4_XSHUT` | GPIO25 (pin 22) — `ROVER_TOF4_XSHUT_GPIO` |
+
+XSHUT lines are **point-to-point** Pi GPIO → harness → expansion board → each TOF400C `XSHUT` pin. All four TOF400C modules share default VL53L1X address `0x52`; firmware must run **sequential init** (hold all but one XSHUT low, assign unique address `0x52`–`0x55`, release next).
+
+---
+
+## Expansion board
+
+| Property | Value |
+|----------|-------|
+| Board size | 70 × 30 mm (7 × 3 cm) |
+| Hole grid | ~27 × 11 |
+| Hole pitch | 2.54 mm |
+| Layers | Double-sided prototype PCB |
+| Host link | `J_EXP` XH 2.54 harness from main board |
+| Module link | GY-302 and TOF400C ×4 via **XH 2.54** connectors on board (`J_LIGHT`, `J_TOF1`–`J_TOF4`) |
+
+Expansion board uses **signal ground only** (`BUS_GND_SIG` via harness) — no `BUS_GND_PWR` on this board.
+
+### Wiring concept: shared buses
+
+Same tap-on-bus rule as the main board. Shared buses run on the perfboard; each sensor breakout mates to a **female XH 2.54** connector that taps those buses — modules are **not** soldered directly to the copper strips.
+
+**Assembly tip:** on the 7 × 3 cm perfboard, run `BUS_3V3`, `BUS_GND_SIG`, `BUS_I2C_SDA`, and `BUS_I2C_SCL` along dedicated rows. Wire each row to the matching pins on `J_LIGHT` and `J_TOF1`–`J_TOF4`. Use prefabricated XH cables from each breakout to its connector.
+
+### Bus glossary
+
+| Bus identifier | Voltage / signal | Source | Consumers (tap onto bus) |
+|----------------|------------------|--------|--------------------------|
+| `BUS_3V3` | 3.3 V logic | `J_EXP` pin 1 | `J_LIGHT`, `J_TOF1`–`J_TOF4` |
+| `BUS_GND_SIG` | 0 V signal / logic | `J_EXP` pin 2 | `J_LIGHT`, `J_TOF1`–`J_TOF4` |
+| `BUS_I2C_SDA` | I2C data | `J_EXP` pin 3 | `J_LIGHT`, `J_TOF1`–`J_TOF4` |
+| `BUS_I2C_SCL` | I2C clock | `J_EXP` pin 4 | `J_LIGHT`, `J_TOF1`–`J_TOF4` |
+| `SIG_TOF1_XSHUT` | TOF #1 shutdown | `J_EXP` pin 5 | `J_TOF1` |
+| `SIG_TOF2_XSHUT` | TOF #2 shutdown | `J_EXP` pin 6 | `J_TOF2` |
+| `SIG_TOF3_XSHUT` | TOF #3 shutdown | `J_EXP` pin 7 | `J_TOF3` |
+| `SIG_TOF4_XSHUT` | TOF #4 shutdown | `J_EXP` pin 8 | `J_TOF4` |
+
+### Connection diagrams
+
+#### Diagram 4 — Expansion board bus topology
+
+```mermaid
+flowchart TB
+  subgraph harness [XH 2.54 harness from main board]
+    JEXP[J_EXP 8-pin]
+  end
+
+  subgraph expBrd [Expansion board 7x3cm]
+    BUS_3V3[BUS_3V3]
+    BUS_GND[BUS_GND_SIG]
+    BUS_SDA[BUS_I2C_SDA]
+    BUS_SCL[BUS_I2C_SCL]
+    X1[SIG_TOF1_XSHUT]
+    X2[SIG_TOF2_XSHUT]
+    X3[SIG_TOF3_XSHUT]
+    X4[SIG_TOF4_XSHUT]
+    J_LIGHT[J_LIGHT XH 5-pin]
+    J_T1[J_TOF1 XH 6-pin]
+    J_T2[J_TOF2 XH 6-pin]
+    J_T3[J_TOF3 XH 6-pin]
+    J_T4[J_TOF4 XH 6-pin]
+    BH1750[GY-302 BH1750]
+    TOF1[TOF400C 1]
+    TOF2[TOF400C 2]
+    TOF3[TOF400C 3]
+    TOF4[TOF400C 4]
+  end
+
+  JEXP --> BUS_3V3
+  JEXP --> BUS_GND
+  JEXP --> BUS_SDA
+  JEXP --> BUS_SCL
+  JEXP --> X1
+  JEXP --> X2
+  JEXP --> X3
+  JEXP --> X4
+
+  BUS_3V3 --> J_LIGHT
+  BUS_3V3 --> J_T1
+  BUS_3V3 --> J_T2
+  BUS_3V3 --> J_T3
+  BUS_3V3 --> J_T4
+
+  BUS_GND --> J_LIGHT
+  BUS_GND --> J_T1
+  BUS_GND --> J_T2
+  BUS_GND --> J_T3
+  BUS_GND --> J_T4
+
+  BUS_SDA --> J_LIGHT
+  BUS_SDA --> J_T1
+  BUS_SDA --> J_T2
+  BUS_SDA --> J_T3
+  BUS_SDA --> J_T4
+
+  BUS_SCL --> J_LIGHT
+  BUS_SCL --> J_T1
+  BUS_SCL --> J_T2
+  BUS_SCL --> J_T3
+  BUS_SCL --> J_T4
+
+  X1 --> J_T1
+  X2 --> J_T2
+  X3 --> J_T3
+  X4 --> J_T4
+
+  J_LIGHT --- BH1750
+  J_T1 --- TOF1
+  J_T2 --- TOF2
+  J_T3 --- TOF3
+  J_T4 --- TOF4
+```
+
+#### Diagram 5 — System link (main board ↔ expansion board)
+
+```mermaid
+flowchart LR
+  subgraph piHost [Raspberry Pi Zero 2 W]
+    Pi3V3[3V3 pin 1]
+    PiGND[GND pin 6]
+    PiSDA[GPIO2 SDA]
+    PiSCL[GPIO3 SCL]
+    PiXSHUT[GPIO7/8/10/25 XSHUT]
+  end
+
+  subgraph mainBrd [Main board]
+    BUS_3V3[BUS_3V3]
+    BUS_GND_SIG[BUS_GND_SIG]
+    BUS_SDA[BUS_I2C_SDA]
+    BUS_SCL[BUS_I2C_SCL]
+    J_MAIN[J_EXP XH]
+  end
+
+  subgraph harness [XH 2.54 ribbon]
+    HARNESS[8-pin harness]
+  end
+
+  subgraph expBrd [Expansion board 7x3cm]
+    J_EXP[J_EXP XH]
+    J_LIGHT[J_LIGHT XH]
+    J_TOF[J_TOF1-4 XH]
+    BH1750[GY-302 BH1750]
+    TOF1[TOF400C 1]
+    TOF2[TOF400C 2]
+    TOF3[TOF400C 3]
+    TOF4[TOF400C 4]
+  end
+
+  Pi3V3 --> BUS_3V3
+  PiGND --> BUS_GND_SIG
+  PiSDA --> BUS_SDA
+  PiSCL --> BUS_SCL
+  PiXSHUT --> J_MAIN
+
+  BUS_3V3 --> J_MAIN
+  BUS_GND_SIG --> J_MAIN
+  BUS_SDA --> J_MAIN
+  BUS_SCL --> J_MAIN
+
+  J_MAIN --- HARNESS --- J_EXP
+
+  J_EXP --> J_LIGHT
+  J_EXP --> J_TOF
+
+  J_LIGHT --- BH1750
+  J_TOF --- TOF1
+  J_TOF --- TOF2
+  J_TOF --- TOF3
+  J_TOF --- TOF4
+```
+
+### Module connectors (XH 2.54)
+
+Each sensor breakout connects to the expansion board through a dedicated **JST-XH 2.54 mm** connector. Mount **female XH** on the board; mate prefabricated cables from the module headers. Pin 1 marked on silkscreen for each connector.
+
+| Connector | Pins | Module | Notes |
+|-----------|------|--------|-------|
+| `J_LIGHT` | 5 | GY-302 (BH1750) | I2C light sensor |
+| `J_TOF1` | 6 | TOF400C #1 | Includes `SIG_TOF1_XSHUT` |
+| `J_TOF2` | 6 | TOF400C #2 | Includes `SIG_TOF2_XSHUT` |
+| `J_TOF3` | 6 | TOF400C #3 | Includes `SIG_TOF3_XSHUT` |
+| `J_TOF4` | 6 | TOF400C #4 | Includes `SIG_TOF4_XSHUT` |
+
+#### `J_LIGHT` — GY-302 harness (5-pin XH)
+
+| Pin | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VCC | Logic supply | `JLIGHT_VCC` | `BUS_3V3` | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `JLIGHT_GND` | `BUS_GND_SIG` | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `JLIGHT_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `JLIGHT_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | ADDR | I2C address select | `JLIGHT_ADDR` | `BUS_GND_SIG` (address `0x23`) | GND (pin 6) — via `J_EXP` |
+
+#### `J_TOF1` — TOF400C #1 harness (6-pin XH)
+
+| Pin | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply | `JTOF1_VIN` | `BUS_3V3` | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `JTOF1_GND` | `BUS_GND_SIG` | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `JTOF1_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `JTOF1_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `JTOF1_XSHUT` | `SIG_TOF1_XSHUT` | GPIO7 (pin 26) — `ROVER_TOF1_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `JTOF1_INT` | NC | — |
+
+#### `J_TOF2` — TOF400C #2 harness (6-pin XH)
+
+| Pin | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply | `JTOF2_VIN` | `BUS_3V3` | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `JTOF2_GND` | `BUS_GND_SIG` | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `JTOF2_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `JTOF2_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `JTOF2_XSHUT` | `SIG_TOF2_XSHUT` | GPIO8 (pin 24) — `ROVER_TOF2_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `JTOF2_INT` | NC | — |
+
+#### `J_TOF3` — TOF400C #3 harness (6-pin XH)
+
+| Pin | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply | `JTOF3_VIN` | `BUS_3V3` | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `JTOF3_GND` | `BUS_GND_SIG` | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `JTOF3_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `JTOF3_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `JTOF3_XSHUT` | `SIG_TOF3_XSHUT` | GPIO10 (pin 19) — `ROVER_TOF3_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `JTOF3_INT` | NC | — |
+
+#### `J_TOF4` — TOF400C #4 harness (6-pin XH)
+
+| Pin | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply | `JTOF4_VIN` | `BUS_3V3` | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `JTOF4_GND` | `BUS_GND_SIG` | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `JTOF4_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `JTOF4_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `JTOF4_XSHUT` | `SIG_TOF4_XSHUT` | GPIO25 (pin 22) — `ROVER_TOF4_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `JTOF4_INT` | NC | — |
+
+---
+
+### Component pin tables
+
+#### 1. GY-302 (BH1750) light sensor
+
+**Product:** [AliExpress — GY-302](https://aliexpress.ru/item/1005004648441915.html)
+
+Ambient light sensor on I2C. Default address `0x23` with `ADDR` tied low (`ROVER_LIGHT_I2C_ADDRESS`). Module mates to expansion board via **`J_LIGHT`** XH cable (pin order must match table above).
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VCC | Logic supply | `BH1750_VCC` | `J_LIGHT` pin 1 | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `BH1750_GND` | `J_LIGHT` pin 2 | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `BH1750_SCL` | `J_LIGHT` pin 3 | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `BH1750_SDA` | `J_LIGHT` pin 4 | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | ADDR | I2C address select | `BH1750_ADDR` | `J_LIGHT` pin 5 | GND (pin 6) — via `J_EXP` |
+
+---
+
+#### 2. TOF400C #1 (VL53L1X)
+
+**Product:** [AliExpress — TOF400C](https://aliexpress.ru/item/1005005943838090.html)
+
+Time-of-flight distance sensor. Planned post-init I2C address `0x52` (`ROVER_TOF1_I2C_ADDRESS`). Module mates to expansion board via **`J_TOF1`** XH cable.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply (3–5 V) | `TOF1_VIN` | `J_TOF1` pin 1 | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `TOF1_GND` | `J_TOF1` pin 2 | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `TOF1_SCL` | `J_TOF1` pin 3 | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `TOF1_SDA` | `J_TOF1` pin 4 | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `TOF1_XSHUT` | `J_TOF1` pin 5 | GPIO7 (pin 26) — `ROVER_TOF1_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `TOF1_INT` | `J_TOF1` pin 6 (NC) | — |
+
+---
+
+#### 3. TOF400C #2 (VL53L1X)
+
+Same module type as TOF #1. Planned post-init I2C address `0x53` (`ROVER_TOF2_I2C_ADDRESS`). Module mates via **`J_TOF2`** XH cable.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply (3–5 V) | `TOF2_VIN` | `J_TOF2` pin 1 | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `TOF2_GND` | `J_TOF2` pin 2 | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `TOF2_SCL` | `J_TOF2` pin 3 | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `TOF2_SDA` | `J_TOF2` pin 4 | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `TOF2_XSHUT` | `J_TOF2` pin 5 | GPIO8 (pin 24) — `ROVER_TOF2_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `TOF2_INT` | `J_TOF2` pin 6 (NC) | — |
+
+---
+
+#### 4. TOF400C #3 (VL53L1X)
+
+Same module type as TOF #1. Planned post-init I2C address `0x54` (`ROVER_TOF3_I2C_ADDRESS`). Module mates via **`J_TOF3`** XH cable.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply (3–5 V) | `TOF3_VIN` | `J_TOF3` pin 1 | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `TOF3_GND` | `J_TOF3` pin 2 | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `TOF3_SCL` | `J_TOF3` pin 3 | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `TOF3_SDA` | `J_TOF3` pin 4 | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `TOF3_XSHUT` | `J_TOF3` pin 5 | GPIO10 (pin 19) — `ROVER_TOF3_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `TOF3_INT` | `J_TOF3` pin 6 (NC) | — |
+
+---
+
+#### 5. TOF400C #4 (VL53L1X)
+
+Same module type as TOF #1. Planned post-init I2C address `0x55` (`ROVER_TOF4_I2C_ADDRESS`). Module mates via **`J_TOF4`** XH cable.
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | VIN | Module supply (3–5 V) | `TOF4_VIN` | `J_TOF4` pin 1 | 3V3 (pin 1) — via `J_EXP` |
+| 2 | GND | Logic ground | `TOF4_GND` | `J_TOF4` pin 2 | GND (pin 6) — via `J_EXP` |
+| 3 | SCL | I2C clock | `TOF4_SCL` | `J_TOF4` pin 3 | GPIO3 (pin 5) — via `J_EXP` |
+| 4 | SDA | I2C data | `TOF4_SDA` | `J_TOF4` pin 4 | GPIO2 (pin 3) — via `J_EXP` |
+| 5 | XSHUT | Shutdown (active low) | `TOF4_XSHUT` | `J_TOF4` pin 5 | GPIO25 (pin 22) — `ROVER_TOF4_XSHUT_GPIO` |
+| 6 | GPIO1 / INT | Interrupt (optional) | `TOF4_INT` | `J_TOF4` pin 6 (NC) | — |
+
+> Physical placement of `J_LIGHT` and `J_TOF1`–`J_TOF4` on the 7 × 3 cm board is left to assembly. One shared I2C pull-up pair on the expansion board (on `BUS_I2C_SDA` / `BUS_I2C_SCL`) is sufficient if module onboard pull-ups are disabled or only one module provides them.
+
+---
+
 ## Raspberry Pi Zero 2 W — GPIO map
 
 Pi Zero 2 W uses **BCM GPIO numbering** (what pigpio and `.env.example` use), not physical pin numbers.
@@ -562,15 +900,24 @@ Enable **I2C** and **pigpio** before deployment — see [README — I2C and 1-Wi
 |--------------|----------------|------------|------------------|
 | 1 | 3V3 | `BUS_3V3` source | INA219, MPU6050, TB6612 ×3 |
 | 2 | 5V | `BUS_5V` sink | iFlight BEC `VOUT+` |
-| 6 | GND | `BUS_GND_SIG` tap | Pi, INA219, MPU6050, BEC `VOUT−` |
+| 6 | GND | `BUS_GND_SIG` tap | Pi, INA219, MPU6050, BEC `VOUT−`, `J_EXP` pin 2 |
+| 3 | GPIO2 | `BUS_I2C_SDA` source | INA219, MPU6050, `J_EXP` pin 3 |
+| 5 | GPIO3 | `BUS_I2C_SCL` source | INA219, MPU6050, `J_EXP` pin 4 |
 
 **Ground buses (not on Pi header):**
 
 | Bus | Role | Tie point |
 |-----|------|-----------|
 | `BUS_GND_PWR` | BMS `P−`, BEC `VIN−`, TB6612 `GND` ×3 | Join to `BUS_GND_SIG` once at `BUS_GND_TIE` |
-| 3 | GPIO2 | `BUS_I2C_SDA` source | INA219, MPU6050 |
-| 5 | GPIO3 | `BUS_I2C_SCL` source | INA219, MPU6050 |
+
+### TOF XSHUT GPIO (via `J_EXP` harness)
+
+| Physical pin | BCM GPIO | Signal | Env var |
+|--------------|----------|--------|---------|
+| 26 | GPIO7 | TOF #1 XSHUT | `ROVER_TOF1_XSHUT_GPIO` |
+| 24 | GPIO8 | TOF #2 XSHUT | `ROVER_TOF2_XSHUT_GPIO` |
+| 19 | GPIO10 | TOF #3 XSHUT | `ROVER_TOF3_XSHUT_GPIO` |
+| 22 | GPIO25 | TOF #4 XSHUT | `ROVER_TOF4_XSHUT_GPIO` |
 
 ### Motor control GPIO (dedicated `SIG_*`)
 
@@ -596,12 +943,17 @@ Enable **I2C** and **pigpio** before deployment — see [README — I2C and 1-Wi
 
 ## I2C device map
 
-| Identifier | Part | Address | Bus |
-|------------|------|---------|-----|
-| `INA219_PWRMON` | INA219 | `0x40` | I2C1 (`/dev/i2c-1`) |
-| `MPU6050_IMU` | GY-521 / MPU6050 | `0x68` | I2C1 (`/dev/i2c-1`) |
+| Identifier | Part | Address | Location | Bus |
+|------------|------|---------|----------|-----|
+| `INA219_PWRMON` | INA219 | `0x40` | Main board | I2C1 (`/dev/i2c-1`) |
+| `MPU6050_IMU` | GY-521 / MPU6050 | `0x68` | Main board | I2C1 (`/dev/i2c-1`) |
+| `BH1750_LIGHT` | GY-302 / BH1750 | `0x23` | Expansion board | I2C1 (`/dev/i2c-1`) |
+| `TOF1` | TOF400C / VL53L1X | `0x52` (after init) | Expansion board | I2C1 (`/dev/i2c-1`) |
+| `TOF2` | TOF400C / VL53L1X | `0x53` (after init) | Expansion board | I2C1 (`/dev/i2c-1`) |
+| `TOF3` | TOF400C / VL53L1X | `0x54` (after init) | Expansion board | I2C1 (`/dev/i2c-1`) |
+| `TOF4` | TOF400C / VL53L1X | `0x55` (after init) | Expansion board | I2C1 (`/dev/i2c-1`) |
 
-Both devices share `BUS_I2C_SDA` and `BUS_I2C_SCL` on GPIO2 / GPIO3.
+All devices share `BUS_I2C_SDA` and `BUS_I2C_SCL` on GPIO2 / GPIO3. TOF sensors ship at default address `0x52`; assign unique addresses during sequential XSHUT init before normal polling.
 
 ---
 
@@ -609,8 +961,9 @@ Both devices share `BUS_I2C_SDA` and `BUS_I2C_SCL` on GPIO2 / GPIO3.
 
 | Item | Notes |
 |------|-------|
-| Second prototype board | Not yet designed |
 | DS18B20 temperature sensors | On future board; `ROVER_THERMAL_SENSOR_IDS` in `.env.example` |
-| GY-302 / BH1750 light sensor | Listed in README, not on main board |
-| Arducam IMX462 camera | CSI connection to Pi, not on main board |
+| Arducam IMX462 camera | CSI connection to Pi, not on prototype boards |
+| TOF400C driver module | Env keys in `.env.example`; backend not implemented yet |
 | Physical module placement | Modules socketed/screwed to perfboard; exact hole coordinates left to assembly |
+| TOF INT/GPIO1 wiring | Leave unconnected unless IRQ added later |
+| I2C mux (TCA9548A) | Not used; XSHUT sequential init chosen instead |
