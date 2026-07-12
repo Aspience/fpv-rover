@@ -1,6 +1,6 @@
 # FPV Rover Wiring Schema
 
-Hardware wiring reference for the FPV Rover prototype: **main board** (power, motion, IMU) and **expansion board** (light + ToF sensors). Main ↔ expansion link and all expansion-board modules use **XH 2.54** connectors.
+Hardware wiring reference for the FPV Rover prototype: **main board** (power, motion, IMU) and **expansion board** (light + ToF sensors). Main ↔ expansion link and expansion-board modules use **XH 2.54** connectors. Panel power switch `SW_MAIN` uses **direct 16–18 AWG wires** to main-board solder pads (not XH).
 
 | Property | Main board | Expansion board |
 |----------|------------|-----------------|
@@ -31,7 +31,7 @@ All shared rails are **one physical bus per voltage or signal** on the perfboard
 | `BUS_GND_SIG` | 0 V signal / logic | Pi GND pin, BEC `VOUT−` | Pi GND, INA219 `GND`, MPU6050 `GND` + `AD0`, BEC `VOUT−` |
 | `BUS_GND_PWR` | 0 V power / high current | BMS `P−` | BMS `P−`, BEC `VIN−`, TB6612 `GND` ×3 |
 | `BUS_GND_TIE` | Ground tie (single point) | — | **One** short link between `BUS_GND_SIG` and `BUS_GND_PWR` (at BEC or BMS `P−`) |
-| `BUS_PACK_V+` | 7.4–8.4 V protected | BMS `P+` | BEC `VIN+`, INA219 `VIN+`, INA219 `VIN−` (load side), TB6612 `VM` ×3 |
+| `BUS_PACK_V+` | 7.4–8.4 V protected (switched) | `SIG_SW_MAIN_OUT` | BEC `VIN+`, INA219 `VIN+`, INA219 `VIN−` (load side), TB6612 `VM` ×3 |
 | `BUS_5V` | 5 V | BEC `VOUT+` (only source) | Pi `5V` pin 2 |
 | `BUS_3V3` | 3.3 V logic | Pi `3V3` pin 1 (only source) | INA219 `VCC`, MPU6050 `VCC`, TB6612 `VCC` + `STBY` ×3 |
 | `BUS_I2C_SDA` | I2C data | Pi `GPIO2` pin 3 | INA219 `SDA`, MPU6050 `SDA`, `J_EXP` pin 3 |
@@ -112,7 +112,7 @@ Each string is two cells in **series** (`flowchart` left-to-right inside the sub
 
 **BMS soldering order:** connect `B-` first, then `BM`, then `B+` (standard 2S protection practice).
 
-**Power path:** cells → BMS → `BUS_PACK_V+` / `BUS_GND_PWR` → {BEC input, INA219 shunt, TB6612 VM}; BEC `VOUT−` → `BUS_GND_SIG` → Pi; Pi sources `BUS_3V3` and `BUS_I2C_*` → {INA219, MPU6050, TB6612 logic}; `BUS_GND_SIG` ↔ `BUS_GND_PWR` tied once at BEC/BMS; Type-C charger taps `BUS_CELL_*` in parallel with BMS cell pads (not through BMS output).
+**Power path:** cells → BMS → **`SIG_SW_MAIN_IN` / panel `SW_MAIN` / `SIG_SW_MAIN_OUT`** (series) → `BUS_PACK_V+` / `BUS_GND_PWR` → {BEC input, INA219 shunt, TB6612 VM}; BEC `VOUT−` → `BUS_GND_SIG` → Pi; Pi sources `BUS_3V3` and `BUS_I2C_*` → {INA219, MPU6050, TB6612 logic}; `BUS_GND_SIG` ↔ `BUS_GND_PWR` tied once at BEC/BMS; Type-C charger taps `BUS_CELL_*` in parallel with BMS cell pads (not through BMS output or `SW_MAIN`).
 
 ---
 
@@ -139,6 +139,9 @@ flowchart TB
   end
 
   BMS[BMS P+ P-]
+  SW_IN[SIG_SW_MAIN_IN pad]
+  SW[SW_MAIN panel switch]
+  SW_OUT[SIG_SW_MAIN_OUT pad]
   BEC[iFlight BEC]
   INA[INA219]
   IMU[GY-521]
@@ -151,7 +154,10 @@ flowchart TB
   GND_SIG --- GND_TIE
   GND_PWR --- GND_TIE
 
-  BMS -->|P+| BUS_PACK
+  BMS -->|P+| SW_IN
+  SW_IN -->|16-18 AWG| SW
+  SW -->|16-18 AWG| SW_OUT
+  SW_OUT --> BUS_PACK
   BMS -->|P-| GND_PWR
   BEC -->|VIN+| BUS_PACK
   BEC -->|VIN-| GND_PWR
@@ -214,6 +220,8 @@ flowchart LR
     CHG_BM[BM]
   end
 
+  SW_MAIN[SW_MAIN panel switch]
+
   PACKP[BUS_PACK_V+]
   PACKN[BUS_GND_PWR]
   MID[BUS_CELL_MID]
@@ -226,7 +234,10 @@ flowchart LR
   S2B --> BMS_PP
   S2A --> PACKN
   S2B --> PACKP
-  BMS_PP --> PACKP
+  BMS_PP --> SW_IN[SIG_SW_MAIN_IN]
+  SW_IN -->|wire| SW_MAIN
+  SW_MAIN -->|wire| SW_OUT[SIG_SW_MAIN_OUT]
+  SW_OUT --> PACKP
   BMS_PN --> PACKN
   MID --> BMS_BM
   MID --> CHG_BM
@@ -245,7 +256,7 @@ flowchart LR
   GND_PWR -.->|BUS_GND_TIE once| SIGGND
 ```
 
-Protected pack voltage feeds high-power loads on `BUS_GND_PWR`; BEC `VOUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground.
+Protected pack voltage feeds high-power loads on `BUS_GND_PWR` through `SIG_SW_MAIN_IN` → panel `SW_MAIN` → `SIG_SW_MAIN_OUT` in series on the `P+` path; BEC `VOUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground. With `SW_MAIN` **OFF**, `BUS_PACK_V+` is isolated — Pi, BEC, and motor drivers have no pack feed (charger on `BUS_CELL_*` still works).
 
 #### Diagram 2 — Raspberry Pi GPIO and I2C connections
 
@@ -387,11 +398,65 @@ Four 18650 cells, two series strings paralleled (2S2P). Nominal 7.4 V, full char
 | 2 | BM / B1 | Midpoint between Cell 1 and Cell 2 | `BMS2S_BMID` | `BUS_CELL_MID` | — |
 | 3 | B+ | Battery positive (Cell 2 +) | `BMS2S_BPLUS` | `BUS_CELL_POS` | — |
 | 4 | P− | Protected pack negative output | `BMS2S_PMINUS` | `BUS_GND_PWR` | — |
-| 5 | P+ | Protected pack positive output | `BMS2S_PPLUS` | `BUS_PACK_V+` | — |
+| 5 | P+ | Protected pack positive output | `BMS2S_PPLUS` | `SIG_SW_MAIN_IN` | — |
 
 ---
 
-#### 3. Type-C 2S USB charger (15 W, balanced)
+#### 3. Main power switch (latching push button)
+
+**Product:** [Ozon — круглая клавишная кнопка-выключатель без подсветки, вкл/выкл (2 шт.)](https://ozon.by/product/kruglaya-klavishnaya-knopka-vyklyuchatel-bez-podsvetki-vkl-vykl-tehnologiya-2sht-1317482531/?is_apparel_size_selected=true)
+
+Round panel-mount **SPST latching** push switch (no backlight). Press once → **ON** (contacts closed); press again → **OFF** (contacts open). Two solder pins on the switch body — polarity does not matter.
+
+**Role:** main **pack output disconnect** on the high side. Breaks `BMS P+` from the switched load bus `BUS_PACK_V+` (BEC, INA219 shunt input, TB6612 `VM` ×3). When **OFF**, the Pi and motors are fully depowered with no quiescent draw on the protected output.
+
+**Does not switch:** cell-side charge path (`BUS_CELL_*` → Type-C charger) or BMS protection — USB charging remains possible with the button **OFF**.
+
+**Link to main board:** **two direct wires** (16–18 AWG), soldered at the switch and at dedicated **main-board pads**. No connector on the power path. The switch is **in series** — there is **no** on-board jumper between `SIG_SW_MAIN_IN` and `SIG_SW_MAIN_OUT`.
+
+```mermaid
+flowchart LR
+  BMS_P[BMS P+]
+  PAD_IN["SIG_SW_MAIN_IN<br/>board pad"]
+  SW[SW_MAIN panel switch]
+  PAD_OUT["SIG_SW_MAIN_OUT<br/>board pad"]
+  PACK[BUS_PACK_V+]
+
+  BMS_P --> PAD_IN
+  PAD_IN -->|16-18 AWG| SW
+  SW -->|16-18 AWG| PAD_OUT
+  PAD_OUT --> PACK
+```
+
+| Property | Typical value |
+|----------|---------------|
+| Contacts | 2-pin SPST |
+| Action | Latching ON / OFF (with detent) |
+| Mount | Panel cutout ~12 mm (round); nut from rear |
+| Wire | **16–18 AWG** silicone; strain relief at switch and cable entry |
+| Rating | Verify on listing; similar KCD1-class parts are often **3–6 A @ 250 V AC** |
+
+**Panel switch pins** (solder wires at the switch body):
+
+| # | Name | Description | Identifier | Connect to | Raspberry Pi |
+|---|------|-------------|------------|------------|--------------|
+| 1 | Pin A | Wire to BMS side | `SW_MAIN_A` | `SIG_SW_MAIN_IN` via direct wire | — |
+| 2 | Pin B | Wire to load bus side | `SW_MAIN_B` | `SIG_SW_MAIN_OUT` via direct wire | — |
+
+**Main board — solder pads** (no connector; point-to-point `SIG_*` nets):
+
+| Pad | Name | Description | Identifier | Connect to | Raspberry Pi |
+|-----|------|-------------|------------|------------|--------------|
+| IN | Series input | From BMS `P+` | `SIG_SW_MAIN_IN` | `BMS2S_PPLUS` | — |
+| OUT | Series output | To load bus source | `SIG_SW_MAIN_OUT` | `BUS_PACK_V+` (source node) | — |
+
+**Assembly:** mount `SW_MAIN` on the **rover body**; route both wires through a **cable grommet** with **strain relief** (tie wraps / adhesive anchor) so opening the enclosure does not stress solder joints. Use a **thick copper tap** or bus wire at each pad — do not feed pack current through a thin perfboard trace alone.
+
+> **Safety:** treat `SW_MAIN` as a convenience disconnect, not a substitute for removing cells or isolating the pack during assembly. Open the switch before soldering or reworking the `P+` path.
+
+---
+
+#### 4. Type-C 2S USB charger (15 W, balanced)
 
 **Product:** [Ozon — Type-C 2S USB BMS 15 W 8.4 V 1.5 A](https://ozon.by/product/modul-zaryada-li-ion-akkumulyatorov-type-c-2s-usb-bms-15w-8-4v1-5a-s-balansirovkoy-1sht-3825497145/?is_apparel_size_selected=true)
 
@@ -409,7 +474,7 @@ IP2326-based boost charger. Requires a separate protection BMS on the pack. Defa
 
 ---
 
-#### 4. iFlight Micro 2–8S BEC (5 V / 12 V)
+#### 5. iFlight Micro 2–8S BEC (5 V / 12 V)
 
 **Product:** [AliExpress — iFlight Micro 2–8S BEC](https://aliexpress.ru/item/1005009328418558.html)
 
@@ -426,7 +491,7 @@ Step-down regulator. Default **5 V / 3 A** output (leave `ON-12V` jumper open). 
 
 ---
 
-#### 5. INA219 current/voltage sensor
+#### 6. INA219 current/voltage sensor
 
 **Product:** [AliExpress — INA219 DC sensor module](https://aliexpress.ru/item/32469098903.html?spm=a2g2w.orderdetail.0.0.397a4aa6uCM5jx&sku_id=12000057342623698)
 
@@ -447,7 +512,7 @@ High-side current/voltage monitor on I2C. Default address `0x40` (`ROVER_POWER_I
 
 ---
 
-#### 6. GY-521 (MPU6050) IMU
+#### 7. GY-521 (MPU6050) IMU
 
 **Product:** [AliExpress — GY-521 MPU6050 module](https://aliexpress.ru/item/1005008410243217.html?spm=a2g2w.orderdetail.0.0.6fc54aa6ySaXBR&sku_id=12000052230264891)
 
@@ -466,7 +531,7 @@ High-side current/voltage monitor on I2C. Default address `0x40` (`ROVER_POWER_I
 
 ---
 
-#### 7. TB6612FNG motor driver — front (drive)
+#### 8. TB6612FNG motor driver — front (drive)
 
 **Product:** [AliExpress — TB6612FNG motor driver board](https://aliexpress.ru/item/1005007794705783.html?spm=a2g2w.orderdetail.0.0.43c84aa6MN8SJi&sku_id=12000042228397920)
 
@@ -497,7 +562,7 @@ Env vars: `ROVER_MOTION_FRONT_PWMA_GPIO`, `ROVER_MOTION_FRONT_AIN1_GPIO`, `ROVER
 
 ---
 
-#### 8. TB6612FNG motor driver — rear (drive)
+#### 9. TB6612FNG motor driver — rear (drive)
 
 Same board type as front driver; channel A drives the rear LEGO Control+ hub.
 
@@ -524,7 +589,7 @@ Env vars: `ROVER_MOTION_REAR_PWMA_GPIO`, `ROVER_MOTION_REAR_AIN1_GPIO`, `ROVER_M
 
 ---
 
-#### 9. TB6612FNG motor driver — steer
+#### 10. TB6612FNG motor driver — steer
 
 Same board type; channel A drives the steering LEGO Control+ hub.
 
@@ -553,7 +618,7 @@ Env vars: `ROVER_MOTION_STEER_PWMA_GPIO`, `ROVER_MOTION_STEER_AIN1_GPIO`, `ROVER
 
 ---
 
-#### 10. Main board — `J_EXP` expansion harness
+#### 11. Main board — `J_EXP` expansion harness
 
 8-pin **JST-XH 2.54 mm** connector on the main board edge (`J_EXP`). Pin 1 marked on silkscreen. Mates with matching `J_EXP` on the expansion board via ribbon cable. Mount **female XH** on the main board; mate with expansion board at assembly.
 
