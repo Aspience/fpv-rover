@@ -28,11 +28,11 @@ All shared rails are **one physical bus per voltage or signal** on the perfboard
 
 | Bus identifier | Voltage / signal | Source | Consumers (tap onto bus) |
 |----------------|------------------|--------|--------------------------|
-| `BUS_GND_SIG` | 0 V signal / logic | Pi GND pin, BEC `VOUT−` | Pi GND, INA219 `GND`, MPU6050 `GND` + `AD0`, BEC `VOUT−` |
-| `BUS_GND_PWR` | 0 V power / high current | BMS `P−` | BMS `P−`, BEC `VIN−`, TB6612 `GND` ×3 |
-| `BUS_GND_TIE` | Ground tie (single point) | — | **One** short link between `BUS_GND_SIG` and `BUS_GND_PWR` (at BEC or BMS `P−`) |
-| `BUS_PACK_V+` | 7.4–8.4 V protected (switched) | `SIG_SW_MAIN_OUT` | BEC `VIN+`, INA219 `VIN+`, INA219 `VIN−` (load side), TB6612 `VM` ×3 |
-| `BUS_5V` | 5 V | BEC `VOUT+` (only source) | Pi `5V` pin 2 |
+| `BUS_GND_SIG` | 0 V signal / logic | Pi GND pin, CN3903 `OUT−` | Pi GND, INA219 `GND`, MPU6050 `GND` + `AD0`, CN3903 `OUT−` |
+| `BUS_GND_PWR` | 0 V power / high current | BMS `P−` | BMS `P−`, CN3903 `IN−`, TB6612 `GND` ×3 |
+| `BUS_GND_TIE` | Ground tie (single point) | — | **One** short link between `BUS_GND_SIG` and `BUS_GND_PWR` (at CN3903 DC-DC or BMS `P−`) |
+| `BUS_PACK_V+` | 7.4–8.4 V protected (switched) | `SIG_SW_MAIN_OUT` | CN3903 `IN+`, INA219 `VIN+`, INA219 `VIN−` (load side), TB6612 `VM` ×3 |
+| `BUS_5V` | 5 V | CN3903 `OUT+` (only source) | Pi `5V` pin 2 |
 | `BUS_3V3` | 3.3 V logic | Pi `3V3` pin 1 (only source) | INA219 `VCC`, MPU6050 `VCC`, TB6612 `VCC` + `STBY` ×3 |
 | `BUS_I2C_SDA` | I2C data | Pi `GPIO2` pin 3 | INA219 `SDA`, MPU6050 `SDA`, `J_EXP` pin 3 |
 | `BUS_I2C_SCL` | I2C clock | Pi `GPIO3` pin 5 | INA219 `SCL`, MPU6050 `SCL`, `J_EXP` pin 4 |
@@ -47,10 +47,10 @@ Two ground buses keep motor and pack return currents off the Pi and I2C referenc
 
 | Bus | Role | Typical loads |
 |-----|------|----------------|
-| `BUS_GND_SIG` | Logic, Pi, sensors | Raspberry Pi, INA219, GY-521 (MPU6050), BEC 5 V return |
-| `BUS_GND_PWR` | Pack and motor returns | BMS `P−`, BEC high-side input, TB6612 ×3 |
+| `BUS_GND_SIG` | Logic, Pi, sensors | Raspberry Pi, INA219, GY-521 (MPU6050), CN3903 5 V return |
+| `BUS_GND_PWR` | Pack and motor returns | BMS `P−`, CN3903 high-side input, TB6612 ×3 |
 
-**Tie rule:** connect `BUS_GND_SIG` and `BUS_GND_PWR` at **exactly one point** — recommended at the iFlight BEC (`VIN−` ↔ `VOUT−` area) or adjacent to BMS `P−`. Use one short, thick wire or a single solder bridge. Do **not** daisy-chain multiple ties.
+**Tie rule:** connect `BUS_GND_SIG` and `BUS_GND_PWR` at **exactly one point** — recommended at the CN3903 DC-DC (`IN−` ↔ `OUT−` area) or adjacent to BMS `P−`. Use one short, thick wire or a single solder bridge. Do **not** daisy-chain multiple ties.
 
 ```mermaid
 flowchart LR
@@ -112,7 +112,7 @@ Each string is two cells in **series** (`flowchart` left-to-right inside the sub
 
 **BMS soldering order:** connect `B-` first, then `BM`, then `B+` (standard 2S protection practice).
 
-**Power path:** cells → BMS → **`SIG_SW_MAIN_IN` / panel `SW_MAIN` / `SIG_SW_MAIN_OUT`** (series) → `BUS_PACK_V+` / `BUS_GND_PWR` → {BEC input, INA219 shunt, TB6612 VM}; BEC `VOUT−` → `BUS_GND_SIG` → Pi; Pi sources `BUS_3V3` and `BUS_I2C_*` → {INA219, MPU6050, TB6612 logic}; `BUS_GND_SIG` ↔ `BUS_GND_PWR` tied once at BEC/BMS; Type-C charger taps `BUS_CELL_*` in parallel with BMS cell pads (not through BMS output or `SW_MAIN`).
+**Power path:** cells → BMS → **`SIG_SW_MAIN_IN` / panel `SW_MAIN` / `SIG_SW_MAIN_OUT`** (series) → `BUS_PACK_V+` / `BUS_GND_PWR` → {CN3903 DC-DC input, INA219 shunt, TB6612 VM}; CN3903 `OUT−` → `BUS_GND_SIG` → Pi; Pi sources `BUS_3V3` and `BUS_I2C_*` → {INA219, MPU6050, TB6612 logic}; `BUS_GND_SIG` ↔ `BUS_GND_PWR` tied once at CN3903 DC-DC / BMS; Type-C charger taps `BUS_CELL_*` in parallel with BMS cell pads (not through BMS output or `SW_MAIN`).
 
 ---
 
@@ -142,7 +142,7 @@ flowchart TB
   SW_IN[SIG_SW_MAIN_IN pad]
   SW[SW_MAIN panel switch]
   SW_OUT[SIG_SW_MAIN_OUT pad]
-  BEC[iFlight BEC]
+  BEC[CN3903 DC-DC]
   INA[INA219]
   IMU[GY-521]
   DRV1[TB6612 front]
@@ -159,10 +159,10 @@ flowchart TB
   SW -->|16-18 AWG| SW_OUT
   SW_OUT --> BUS_PACK
   BMS -->|P-| GND_PWR
-  BEC -->|VIN+| BUS_PACK
-  BEC -->|VIN-| GND_PWR
-  BEC -->|VOUT+| BUS_5V
-  BEC -->|VOUT-| GND_SIG
+  BEC -->|IN+| BUS_PACK
+  BEC -->|IN-| GND_PWR
+  BEC -->|OUT+| BUS_5V
+  BEC -->|OUT-| GND_SIG
 
   INA -->|VCC| BUS_3V3
   INA -->|GND| GND_SIG
@@ -243,20 +243,20 @@ flowchart LR
   MID --> CHG_BM
   CHG_USB -.->|charge only| PACKP
 
-  PACKP --> BEC_IN[iFlight BEC VIN+]
+  PACKP --> BEC_IN[CN3903 IN+]
   PACKP --> INA_VIN[INA219 VIN+]
   PACKP --> DRV_VM[TB6612 VM x3]
-  PACKN --> BEC_VINM[iFlight BEC VIN-]
+  PACKN --> BEC_VINM[CN3903 IN-]
   PACKN --> GND_PWR[BUS_GND_PWR rail]
 
   BEC_IN --> BEC_OUT[BUS_5V]
   BEC_OUT --> PI_5V[Pi 5V pin 2]
-  BEC_VOUTM[iFlight BEC VOUT-] --> SIGGND
+  BEC_VOUTM[CN3903 OUT-] --> SIGGND
   SIGGND --> PI_GND[Pi GND pin 6]
   GND_PWR -.->|BUS_GND_TIE once| SIGGND
 ```
 
-Protected pack voltage feeds high-power loads on `BUS_GND_PWR` through `SIG_SW_MAIN_IN` → panel `SW_MAIN` → `SIG_SW_MAIN_OUT` in series on the `P+` path; BEC `VOUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground. With `SW_MAIN` **OFF**, `BUS_PACK_V+` is isolated — Pi, BEC, and motor drivers have no pack feed (charger on `BUS_CELL_*` still works).
+Protected pack voltage feeds high-power loads on `BUS_GND_PWR` through `SIG_SW_MAIN_IN` → panel `SW_MAIN` → `SIG_SW_MAIN_OUT` in series on the `P+` path; CN3903 `OUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground. With `SW_MAIN` **OFF**, `BUS_PACK_V+` is isolated — Pi, CN3903 DC-DC, and motor drivers have no pack feed (charger on `BUS_CELL_*` still works).
 
 #### Diagram 2 — Raspberry Pi GPIO and I2C connections
 
@@ -287,15 +287,15 @@ flowchart TB
     P_G22["GPIO22 pin 15"]
   end
 
-  BEC[iFlight BEC]
+  BEC[CN3903 DC-DC]
   INA[INA219]
   IMU[GY-521 MPU6050]
   DRV_F[DRV Front TB6612]
   DRV_R[DRV Rear TB6612]
   DRV_S[DRV Steer TB6612]
 
-  BEC -->|VOUT+| P_5V
-  BEC -->|VOUT-| P_GND
+  BEC -->|OUT+| P_5V
+  BEC -->|OUT-| P_GND
 
   INA -->|SDA| P_SDA
   INA -->|SCL| P_SCL
@@ -408,7 +408,7 @@ Four 18650 cells, two series strings paralleled (2S2P). Nominal 7.4 V, full char
 
 Round panel-mount **SPST latching** push switch (no backlight). Press once → **ON** (contacts closed); press again → **OFF** (contacts open). Two solder pins on the switch body — polarity does not matter.
 
-**Role:** main **pack output disconnect** on the high side. Breaks `BMS P+` from the switched load bus `BUS_PACK_V+` (BEC, INA219 shunt input, TB6612 `VM` ×3). When **OFF**, the Pi and motors are fully depowered with no quiescent draw on the protected output.
+**Role:** main **pack output disconnect** on the high side. Breaks `BMS P+` from the switched load bus `BUS_PACK_V+` (CN3903 DC-DC, INA219 shunt input, TB6612 `VM` ×3). When **OFF**, the Pi and motors are fully depowered with no quiescent draw on the protected output.
 
 **Does not switch:** cell-side charge path (`BUS_CELL_*` → Type-C charger) or BMS protection — USB charging remains possible with the button **OFF**.
 
@@ -474,20 +474,20 @@ IP2326-based boost charger. Requires a separate protection BMS on the pack. Defa
 
 ---
 
-#### 5. iFlight Micro 2–8S BEC (5 V / 12 V)
+#### 5. CN3903 step-down DC-DC (5 V fixed)
 
-**Product:** [AliExpress — iFlight Micro 2–8S BEC](https://aliexpress.ru/item/1005009328418558.html)
+**Product:** [Ozon — CN3903 step-down DC-DC (5 V, 3 pcs)](https://ozon.by/product/ponizhayushchiy-dc-dc-na-cn3903-5v-3-sht-942898517/?is_apparel_size_selected=true)
 
-Step-down regulator. Default **5 V / 3 A** output (leave `ON-12V` jumper open). Sole source of `BUS_5V`.
+Step-down regulator (CN3903 IC). Fixed **5 V / 3 A** output, **5–30 V** input. Sole source of `BUS_5V`.
 
 | # | Name | Description | Identifier | Connect to | Raspberry Pi |
 |---|------|-------------|------------|------------|--------------|
-| 1 | VIN+ | Motor/pack voltage input | `BEC_IFLIGHT_VINPLUS` | `BUS_PACK_V+` | — |
-| 2 | VIN− | Input ground (power return) | `BEC_IFLIGHT_VINMINUS` | `BUS_GND_PWR` | — |
-| 3 | VOUT+ | Regulated output positive | `BEC_IFLIGHT_VOUTPLUS` | `BUS_5V` | 5V (pin 2) — `BUS_5V` source |
-| 4 | VOUT− | Regulated output ground (Pi return) | `BEC_IFLIGHT_VOUTMINUS` | `BUS_GND_SIG` | GND (pin 6) — `BUS_GND_SIG` tap |
+| 1 | IN+ | Motor/pack voltage input | `BEC_CN3903_INPLUS` | `BUS_PACK_V+` | — |
+| 2 | IN− | Input ground (power return) | `BEC_CN3903_INMINUS` | `BUS_GND_PWR` | — |
+| 3 | OUT+ | Regulated output positive | `BEC_CN3903_OUTPLUS` | `BUS_5V` | 5V (pin 2) — `BUS_5V` source |
+| 4 | OUT− | Regulated output ground (Pi return) | `BEC_CN3903_OUTMINUS` | `BUS_GND_SIG` | GND (pin 6) — `BUS_GND_SIG` tap |
 
-> Place adequate input capacitance near the BEC. Tie `BUS_GND_PWR` and `BUS_GND_SIG` **once** at the BEC (recommended) or at BMS `P−`.
+> Place adequate input capacitance near the module. Tie `BUS_GND_PWR` and `BUS_GND_SIG` **once** at the CN3903 DC-DC (recommended) or at BMS `P−`.
 
 ---
 
@@ -964,8 +964,8 @@ Enable **I2C** and **pigpio** before deployment — see [README — I2C and 1-Wi
 | Physical pin | BCM / function | Bus / role | Connected module |
 |--------------|----------------|------------|------------------|
 | 1 | 3V3 | `BUS_3V3` source | INA219, MPU6050, TB6612 ×3 |
-| 2 | 5V | `BUS_5V` sink | iFlight BEC `VOUT+` |
-| 6 | GND | `BUS_GND_SIG` tap | Pi, INA219, MPU6050, BEC `VOUT−`, `J_EXP` pin 2 |
+| 2 | 5V | `BUS_5V` sink | CN3903 DC-DC `OUT+` |
+| 6 | GND | `BUS_GND_SIG` tap | Pi, INA219, MPU6050, CN3903 `OUT−`, `J_EXP` pin 2 |
 | 3 | GPIO2 | `BUS_I2C_SDA` source | INA219, MPU6050, `J_EXP` pin 3 |
 | 5 | GPIO3 | `BUS_I2C_SCL` source | INA219, MPU6050, `J_EXP` pin 4 |
 
@@ -973,7 +973,7 @@ Enable **I2C** and **pigpio** before deployment — see [README — I2C and 1-Wi
 
 | Bus | Role | Tie point |
 |-----|------|-----------|
-| `BUS_GND_PWR` | BMS `P−`, BEC `VIN−`, TB6612 `GND` ×3 | Join to `BUS_GND_SIG` once at `BUS_GND_TIE` |
+| `BUS_GND_PWR` | BMS `P−`, CN3903 `IN−`, TB6612 `GND` ×3 | Join to `BUS_GND_SIG` once at `BUS_GND_TIE` |
 
 ### TOF XSHUT GPIO (via `J_EXP` harness)
 
