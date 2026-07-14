@@ -6,6 +6,7 @@ Monorepo for an FPV rover (LEGO Audi e-tron) controlled from a web UI with live 
 
 - [Overview](#overview)
 - [Hardware requirements](#hardware-requirements)
+- [KiCad project](#kicad-project)
 - [Software requirements](#software-requirements)
 - [Installation and updates](#installation-and-updates)
   - [Prerequisites on the Pi](#prerequisites-on-the-pi)
@@ -65,6 +66,22 @@ Before deployment, enable these on the Pi (see [Prerequisites on the Pi](#prereq
 | evdev (`/dev/input`) | Gamepad input (USB and paired Bluetooth) |
 
 Motion and gamepad modules require the **pigpiod** Docker sidecar. Without pigpio or when the daemon is unreachable, motion falls back to mock hardware (useful for local dev).
+
+---
+
+## KiCad project
+
+Electrical design lives in [`hardware/`](hardware/) as a **KiCad 10** project. The schematic captures the wiring described in [`SCHEMA.md`](SCHEMA.md) (main board + expansion board buses, power path, motor drivers, sensors); `SCHEMA.md` remains the physical wiring source of truth.
+
+| File | What it is |
+|------|------------|
+| `hardware/fpv-rover.kicad_pro` | KiCad project — open this in KiCad |
+| `hardware/fpv-rover.kicad_sch` | Schematic (editable source) |
+| `hardware/fpv-rover.kicad_pcb` | PCB layout (placeholder — build uses perfboard, see `SCHEMA.md`) |
+| `hardware/fpv-rover-schematic.pdf` | Exported schematic — view without KiCad |
+| `hardware/fpv-rover-schematic.svg` / `.png` | Same schematic as vector / raster image |
+
+To view the design, open the PDF/SVG exports. To edit, open `fpv-rover.kicad_pro` in [KiCad](https://www.kicad.org/) 10+ and re-export the PDF/SVG afterwards so the rendered files stay in sync.
 
 ---
 

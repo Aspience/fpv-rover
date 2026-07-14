@@ -1,6 +1,6 @@
 # FPV Rover Wiring Schema
 
-Hardware wiring reference for the FPV Rover prototype: **main board** (power, motion, IMU) and **expansion board** (light + ToF sensors). Main ↔ expansion link and expansion-board modules use **XH 2.54** connectors. Panel power switch `SW_MAIN` uses **direct 16–18 AWG wires** to main-board solder pads (not XH).
+Hardware wiring reference for the FPV Rover prototype: **main board** (power, motion, IMU) and **expansion board** (light + ToF sensors). Main ↔ expansion link and expansion-board modules use **XH 2.54** connectors. The Raspberry Pi Zero 2 W mates with the main board through **`J_PI` — a 2×20 male pin header (гребёнка) soldered on the main board**, wired to all shared buses including `BUS_5V`. Panel power switch `SW_MAIN` uses **direct 16–18 AWG wires** to main-board solder pads (not XH).
 
 | Property | Main board | Expansion board |
 |----------|------------|-----------------|
@@ -8,7 +8,7 @@ Hardware wiring reference for the FPV Rover prototype: **main board** (power, mo
 | Hole grid | 31 × 26 | ~27 × 11 |
 | Hole pitch | 2.54 mm | 2.54 mm |
 | Layers | Double-sided prototype PCB | Double-sided prototype PCB |
-| Host | [Raspberry Pi Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/) (off-board, header wires) | Via main board `J_EXP` harness |
+| Host | [Raspberry Pi Zero 2 W](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w/) on **`J_PI` 2×20 male pin header** (board-mounted) | Via main board `J_EXP` harness |
 
 Software GPIO and I2C defaults live in [`.env.example`](.env.example). **This document is the physical wiring source of truth.**
 
@@ -31,11 +31,12 @@ All shared rails are **one physical bus per voltage or signal** on the perfboard
 | `BUS_GND_SIG` | 0 V signal / logic | Pi GND pin, CN3903 `OUT−` | Pi GND, INA219 `GND`, MPU6050 `GND` + `AD0`, CN3903 `OUT−` |
 | `BUS_GND_PWR` | 0 V power / high current | BMS `P−` | BMS `P−`, CN3903 `IN−`, TB6612 `GND` ×3 |
 | `BUS_GND_TIE` | Ground tie (single point) | — | **One** short link between `BUS_GND_SIG` and `BUS_GND_PWR` (at CN3903 DC-DC or BMS `P−`) |
-| `BUS_PACK_V+` | 7.4–8.4 V protected (switched) | `SIG_SW_MAIN_OUT` | CN3903 `IN+`, INA219 `VIN+`, INA219 `VIN−` (load side), TB6612 `VM` ×3 |
+| `BUS_PACK_V+` | 7.4–8.4 V protected (switched, post-shunt) | INA219 `VIN−` (shunt output; fed from `SIG_SW_MAIN_OUT` → `VIN+`) | CN3903 `IN+`, TB6612 `VM` ×3 |
 | `BUS_5V` | 5 V | CN3903 `OUT+` (only source) | Pi `5V` pin 2 |
 | `BUS_3V3` | 3.3 V logic | Pi `3V3` pin 1 (only source) | INA219 `VCC`, MPU6050 `VCC`, TB6612 `VCC` + `STBY` ×3 |
 | `BUS_I2C_SDA` | I2C data | Pi `GPIO2` pin 3 | INA219 `SDA`, MPU6050 `SDA`, `J_EXP` pin 3 |
 | `BUS_I2C_SCL` | I2C clock | Pi `GPIO3` pin 5 | INA219 `SCL`, MPU6050 `SCL`, `J_EXP` pin 4 |
+| `J_PI` | Raspberry Pi header (2×20 pin header **male**, 2.54 mm) | Main-board connector | Pi Zero 2 W plugs onto it; carries `BUS_5V`, `BUS_3V3`, `BUS_GND_SIG`, `BUS_I2C_SDA`, `BUS_I2C_SCL` and all `SIG_*` GPIO lines |
 | `J_EXP` | Expansion harness (8-pin XH 2.54) | Main-board connector | Exports `BUS_3V3`, `BUS_GND_SIG`, `BUS_I2C_SDA`, `BUS_I2C_SCL`, `SIG_TOF1_XSHUT`–`SIG_TOF4_XSHUT` to expansion board |
 | `BUS_CELL_MID` | Cell midpoint ~4.2 V | 2S2P pack balance tap | BMS `BM`, charger `BM` |
 | `BUS_CELL_NEG` | Cell negative (pre-BMS) | Pack `-` | BMS `B-`, charger `B-` |
@@ -112,7 +113,7 @@ Each string is two cells in **series** (`flowchart` left-to-right inside the sub
 
 **BMS soldering order:** connect `B-` first, then `BM`, then `B+` (standard 2S protection practice).
 
-**Power path:** cells → BMS → **`SIG_SW_MAIN_IN` / panel `SW_MAIN` / `SIG_SW_MAIN_OUT`** (series) → `BUS_PACK_V+` / `BUS_GND_PWR` → {CN3903 DC-DC input, INA219 shunt, TB6612 VM}; CN3903 `OUT−` → `BUS_GND_SIG` → Pi; Pi sources `BUS_3V3` and `BUS_I2C_*` → {INA219, MPU6050, TB6612 logic}; `BUS_GND_SIG` ↔ `BUS_GND_PWR` tied once at CN3903 DC-DC / BMS; Type-C charger taps `BUS_CELL_*` in parallel with BMS cell pads (not through BMS output or `SW_MAIN`).
+**Power path:** cells → BMS → **`SIG_SW_MAIN_IN` / panel `SW_MAIN` / `SIG_SW_MAIN_OUT`** (series) → **INA219 shunt (`VIN+` → `VIN−`)** → `BUS_PACK_V+` / `BUS_GND_PWR` → {CN3903 DC-DC input, TB6612 VM}; CN3903 `OUT−` → `BUS_GND_SIG` → Pi; Pi sources `BUS_3V3` and `BUS_I2C_*` → {INA219, MPU6050, TB6612 logic}; `BUS_GND_SIG` ↔ `BUS_GND_PWR` tied once at CN3903 DC-DC / BMS; Type-C charger taps `BUS_CELL_*` in parallel with BMS cell pads (not through BMS output or `SW_MAIN`).
 
 ---
 
@@ -157,7 +158,8 @@ flowchart TB
   BMS -->|P+| SW_IN
   SW_IN -->|16-18 AWG| SW
   SW -->|16-18 AWG| SW_OUT
-  SW_OUT --> BUS_PACK
+  SW_OUT -->|VIN+| INA
+  INA -->|VIN-| BUS_PACK
   BMS -->|P-| GND_PWR
   BEC -->|IN+| BUS_PACK
   BEC -->|IN-| GND_PWR
@@ -166,7 +168,6 @@ flowchart TB
 
   INA -->|VCC| BUS_3V3
   INA -->|GND| GND_SIG
-  INA -->|VIN+| BUS_PACK
   INA -->|SDA| BUS_SDA
   INA -->|SCL| BUS_SCL
 
@@ -237,14 +238,15 @@ flowchart LR
   BMS_PP --> SW_IN[SIG_SW_MAIN_IN]
   SW_IN -->|wire| SW_MAIN
   SW_MAIN -->|wire| SW_OUT[SIG_SW_MAIN_OUT]
-  SW_OUT --> PACKP
+  SW_OUT --> INA_VIN[INA219 VIN+]
+  INA_VIN -->|shunt| INA_VOUT[INA219 VIN-]
+  INA_VOUT --> PACKP
   BMS_PN --> PACKN
   MID --> BMS_BM
   MID --> CHG_BM
   CHG_USB -.->|charge only| PACKP
 
   PACKP --> BEC_IN[CN3903 IN+]
-  PACKP --> INA_VIN[INA219 VIN+]
   PACKP --> DRV_VM[TB6612 VM x3]
   PACKN --> BEC_VINM[CN3903 IN-]
   PACKN --> GND_PWR[BUS_GND_PWR rail]
@@ -256,11 +258,11 @@ flowchart LR
   GND_PWR -.->|BUS_GND_TIE once| SIGGND
 ```
 
-Protected pack voltage feeds high-power loads on `BUS_GND_PWR` through `SIG_SW_MAIN_IN` → panel `SW_MAIN` → `SIG_SW_MAIN_OUT` in series on the `P+` path; CN3903 `OUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground. With `SW_MAIN` **OFF**, `BUS_PACK_V+` is isolated — Pi, CN3903 DC-DC, and motor drivers have no pack feed (charger on `BUS_CELL_*` still works).
+Protected pack voltage feeds high-power loads on `BUS_GND_PWR` through `SIG_SW_MAIN_IN` → panel `SW_MAIN` → `SIG_SW_MAIN_OUT` → INA219 shunt (`VIN+` → `VIN−`) in series on the `P+` path, so **all** pack current is measured before it reaches `BUS_PACK_V+`; CN3903 `OUT−` and Pi GND sit on `BUS_GND_SIG`, tied once to power ground. With `SW_MAIN` **OFF**, `BUS_PACK_V+` is isolated — Pi, CN3903 DC-DC, and motor drivers have no pack feed (charger on `BUS_CELL_*` still works).
 
 #### Diagram 2 — Raspberry Pi GPIO and I2C connections
 
-Signal wires from main-board modules to the Pi header (BCM + physical pin on labels).
+All Pi connections terminate at the board-mounted **`J_PI` 2×20 male pin header** (BCM + physical pin on labels) — the Pi plugs onto it, no flying wires.
 
 ```mermaid
 flowchart TB
@@ -408,7 +410,7 @@ Four 18650 cells, two series strings paralleled (2S2P). Nominal 7.4 V, full char
 
 Round panel-mount **SPST latching** push switch (no backlight). Press once → **ON** (contacts closed); press again → **OFF** (contacts open). Two solder pins on the switch body — polarity does not matter.
 
-**Role:** main **pack output disconnect** on the high side. Breaks `BMS P+` from the switched load bus `BUS_PACK_V+` (CN3903 DC-DC, INA219 shunt input, TB6612 `VM` ×3). When **OFF**, the Pi and motors are fully depowered with no quiescent draw on the protected output.
+**Role:** main **pack output disconnect** on the high side. Breaks `BMS P+` from the INA219 shunt input (`VIN+`) and therefore from the switched load bus `BUS_PACK_V+` behind it (CN3903 DC-DC, TB6612 `VM` ×3). When **OFF**, the Pi and motors are fully depowered with no quiescent draw on the protected output.
 
 **Does not switch:** cell-side charge path (`BUS_CELL_*` → Type-C charger) or BMS protection — USB charging remains possible with the button **OFF**.
 
@@ -420,12 +422,14 @@ flowchart LR
   PAD_IN["SIG_SW_MAIN_IN<br/>board pad"]
   SW[SW_MAIN panel switch]
   PAD_OUT["SIG_SW_MAIN_OUT<br/>board pad"]
+  INA["INA219 shunt<br/>VIN+ → VIN−"]
   PACK[BUS_PACK_V+]
 
   BMS_P --> PAD_IN
   PAD_IN -->|16-18 AWG| SW
   SW -->|16-18 AWG| PAD_OUT
-  PAD_OUT --> PACK
+  PAD_OUT --> INA
+  INA --> PACK
 ```
 
 | Property | Typical value |
@@ -448,7 +452,7 @@ flowchart LR
 | Pad | Name | Description | Identifier | Connect to | Raspberry Pi |
 |-----|------|-------------|------------|------------|--------------|
 | IN | Series input | From BMS `P+` | `SIG_SW_MAIN_IN` | `BMS2S_PPLUS` | — |
-| OUT | Series output | To load bus source | `SIG_SW_MAIN_OUT` | `BUS_PACK_V+` (source node) | — |
+| OUT | Series output | To INA219 shunt input | `SIG_SW_MAIN_OUT` | `INA219_VINPLUS` (`VIN+`; `BUS_PACK_V+` starts at `VIN−`) | — |
 
 **Assembly:** mount `SW_MAIN` on the **rover body**; route both wires through a **cable grommet** with **strain relief** (tie wraps / adhesive anchor) so opening the enclosure does not stress solder joints. Use a **thick copper tap** or bus wire at each pad — do not feed pack current through a thin perfboard trace alone.
 
@@ -503,12 +507,12 @@ High-side current/voltage monitor on I2C. Default address `0x40` (`ROVER_POWER_I
 | 2 | GND | Logic ground | `INA219_GND` | `BUS_GND_SIG` | GND (pin 6) — `BUS_GND_SIG` tap |
 | 3 | SDA | I2C data | `INA219_SDA` | `BUS_I2C_SDA` | GPIO2 (pin 3) — `BUS_I2C_SDA` source |
 | 4 | SCL | I2C clock | `INA219_SCL` | `BUS_I2C_SCL` | GPIO3 (pin 5) — `BUS_I2C_SCL` source |
-| 5 | VIN+ | High-side shunt input (battery side) | `INA219_VINPLUS` | `BUS_PACK_V+` | — |
-| 6 | VIN− | High-side shunt output (load side) | `INA219_VINMINUS` | `BUS_PACK_V+` (downstream tap) | — |
+| 5 | VIN+ | High-side shunt input (battery side) | `INA219_VINPLUS` | `SIG_SW_MAIN_OUT` (from `SW_MAIN`) | — |
+| 6 | VIN− | High-side shunt output (load side) | `INA219_VINMINUS` | `BUS_PACK_V+` (source node) | — |
 | 7 | A0 | I2C address bit 0 | `INA219_A0` | Tied on module (address `0x40`) | — |
 | 8 | A1 | I2C address bit 1 | `INA219_A1` | Tied on module (address `0x40`) | — |
 
-> `VIN+` / `VIN−` span the on-board shunt: pack current flows through the module before reaching the rest of `BUS_PACK_V+`.
+> `VIN+` / `VIN−` span the on-board shunt and are **two different nets**: `VIN+` sits on `SIG_SW_MAIN_OUT`, `VIN−` is the source node of `BUS_PACK_V+`. All pack current flows through the shunt before reaching any load — do **not** tap `VIN+` and `VIN−` onto the same bus rail, or the shunt is bypassed and the INA219 reads 0 A.
 
 ---
 
@@ -618,7 +622,46 @@ Env vars: `ROVER_MOTION_STEER_PWMA_GPIO`, `ROVER_MOTION_STEER_AIN1_GPIO`, `ROVER
 
 ---
 
-#### 11. Main board — `J_EXP` expansion harness
+#### 11. Main board — `J_PI` Raspberry Pi header (2×20 pin header male)
+
+**Connector:** 2×20 **male pin header** (гребёнка), 2.54 mm pitch, soldered on the main board. The Raspberry Pi Zero 2 W (with a female socket, or its stock male header mated via a 2×20 female–female adapter — recommended: solder a **female socket on the Pi** and plug it onto `J_PI`) mounts directly onto this header. `J_PI` pin numbering is **identical to the Pi 40-pin GPIO map** — pin 1 marked on silkscreen.
+ 
+All shared buses — **including `BUS_5V`** — and all dedicated `SIG_*` GPIO lines terminate at `J_PI`; no flying header wires to the Pi.
+
+**Connected pins** (all others unused, left unconnected):
+
+| `J_PI` pin | Pi function (BCM) | Identifier / net | Role |
+|---|------|------------|------|
+| 1 | 3V3 | `BUS_3V3` | 3.3 V source from Pi |
+| 2, 4 | 5V | `BUS_5V` | 5 V feed **into** Pi from CN3903 |
+| 3 | GPIO2 (SDA) | `BUS_I2C_SDA` | I2C data |
+| 5 | GPIO3 (SCL) | `BUS_I2C_SCL` | I2C clock |
+| 6, 9, 14, 20, 25, 30, 34, 39 | GND | `BUS_GND_SIG` | Signal ground |
+| 11 | GPIO17 | `SIG_FRONT_TACHO_A` | Front tacho A |
+| 12 | GPIO18 | `SIG_FRONT_PWMA` | Front PWM |
+| 13 | GPIO27 | `SIG_FRONT_TACHO_B` | Front tacho B |
+| 15 | GPIO22 | `SIG_STEER_TACHO_B` | Steer tacho B |
+| 16 | GPIO23 | `SIG_FRONT_AIN1` | Front AIN1 |
+| 18 | GPIO24 | `SIG_FRONT_AIN2` | Front AIN2 |
+| 19 | GPIO10 | `SIG_TOF3_XSHUT` | TOF #3 shutdown |
+| 22 | GPIO25 | `SIG_TOF4_XSHUT` | TOF #4 shutdown |
+| 24 | GPIO8 | `SIG_TOF2_XSHUT` | TOF #2 shutdown |
+| 26 | GPIO7 | `SIG_TOF1_XSHUT` | TOF #1 shutdown |
+| 29 | GPIO5 | `SIG_REAR_TACHO_A` | Rear tacho A |
+| 31 | GPIO6 | `SIG_REAR_TACHO_B` | Rear tacho B |
+| 32 | GPIO12 | `SIG_REAR_PWMA` | Rear PWM |
+| 33 | GPIO13 | `SIG_STEER_PWMA` | Steer PWM |
+| 35 | GPIO19 | `SIG_STEER_AIN1` | Steer AIN1 |
+| 36 | GPIO16 | `SIG_REAR_AIN1` | Rear AIN1 |
+| 37 | GPIO26 | `SIG_STEER_AIN2` | Steer AIN2 |
+| 38 | GPIO20 | `SIG_REAR_AIN2` | Rear AIN2 |
+| 40 | GPIO21 | `SIG_STEER_TACHO_A` | Steer tacho A |
+
+> `BUS_5V` from the CN3903 DC-DC powers the Pi **through `J_PI` pins 2/4** — no separate power cable to the Pi. Ground returns on the eight GND pins of the header (`BUS_GND_SIG`).
+
+---
+
+#### 12. Main board — `J_EXP` expansion harness
 
 8-pin **JST-XH 2.54 mm** connector on the main board edge (`J_EXP`). Pin 1 marked on silkscreen. Mates with matching `J_EXP` on the expansion board via ribbon cable. Mount **female XH** on the main board; mate with expansion board at assembly.
 
@@ -955,7 +998,7 @@ Same module type as TOF #1. Planned post-init I2C address `0x55` (`ROVER_TOF4_I2
 
 ## Raspberry Pi Zero 2 W — GPIO map
 
-Pi Zero 2 W uses **BCM GPIO numbering** (what pigpio and `.env.example` use), not physical pin numbers.
+Pi Zero 2 W uses **BCM GPIO numbering** (what pigpio and `.env.example` use), not physical pin numbers. The Pi mounts on the main-board **`J_PI` 2×20 male pin header**; every pin below is a `J_PI` pin.
 
 Enable **I2C** and **pigpio** before deployment — see [README — I2C and 1-Wire](README.md#3-i2c-and-1-wire).
 
