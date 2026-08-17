@@ -7,3 +7,6 @@ Thumbs.db
 .agents
 node_modules
 dist
+hardware/.history
+hardware/fp-lib-table
+hardware/_restore*/
